@@ -1,0 +1,5 @@
+httpx==0.25.2
+networkx==3.2.1
+matplotlib==3.8.4
+python-dotenv==1.0.1
+logfire==0.47.1
