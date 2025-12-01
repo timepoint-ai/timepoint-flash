@@ -1,7 +1,7 @@
 # HANDOFF - TIMEPOINT Flash v2.0
 
-**Status**: v2.0.0 Complete - Ready for Production
-**Date**: 2025-11-30
+**Status**: v2.0.1 - Streaming Refactor Complete
+**Date**: 2025-12-01
 **Branch**: `main`
 
 ---
@@ -65,6 +65,26 @@
   - `docs/DEPLOYMENT.md` - Complete deployment guide
   - Updated README with deployment section
 
+### Phase 8: Streaming Refactor & Developer Experience
+- **Real-time Streaming Pipeline**
+  - `run_streaming()` async generator in `pipeline.py`
+  - Yields `(step, result, state)` after each step completes
+  - True real-time SSE progress (not batched at end)
+  - Step error handling with continuation
+- **API Enhancements**
+  - `include_image` query parameter on GET /timepoints/{id}
+  - Updated streaming endpoint to use async generator
+  - Better error event formatting
+- **Demo CLI Improvements** (`demo.sh`)
+  - Interactive timepoint browser with number selection
+  - Viewer links after generation
+  - Image generation prompts with auto-save/open
+  - Robust bash heredoc handling via environment variables
+- **Server Runner** (`run.sh`)
+  - CLI flags for port, host, workers, reload
+  - Production mode (`-P`) and debug mode (`-d`)
+  - Colored terminal output with ASCII banner
+
 ---
 
 ## Repository Structure
@@ -104,7 +124,9 @@ timepoint-flash/
 ├── README.md               # v2.0 documentation
 ├── QUICKSTART.md           # Getting started guide
 ├── REFACTOR.md             # Architecture plan
-└── HANDOFF.md              # This file
+├── HANDOFF.md              # This file
+├── demo.sh                 # Interactive demo CLI
+└── run.sh                  # Server runner script
 ```
 
 ---
@@ -121,8 +143,14 @@ python3.10 -m pytest -m fast -v
 # Run integration tests
 python3.10 -m pytest -m integration -v
 
-# Start server (development)
-GOOGLE_API_KEY=your-key uvicorn app.main:app --reload
+# Start server (development with auto-reload)
+./run.sh -r
+
+# Start server (production mode)
+./run.sh -P
+
+# Interactive demo CLI
+./demo.sh
 
 # Docker production
 docker compose up -d
@@ -202,12 +230,18 @@ See `.env.example` for complete list.
 
 ---
 
-## v2.0.0 Release
+## v2.0.1 Release
 
-**Tag**: `v2.0.0`
-**Date**: 2025-11-30
+**Tag**: `v2.0.1`
+**Date**: 2025-12-01
 
-### Features
+### New in v2.0.1
+- **Real-time streaming** - Pipeline yields after each step for true SSE progress
+- **Demo CLI** - Interactive `demo.sh` with browse, generate, and image features
+- **Server runner** - `run.sh` with dev/prod modes and CLI options
+- **API improvements** - `include_image` parameter on GET endpoint
+
+### Features (from v2.0.0)
 - 10 specialized AI agents for temporal generation
 - Full CRUD API with SSE streaming
 - Temporal navigation (next/prior/sequence)
