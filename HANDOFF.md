@@ -1,7 +1,7 @@
 # HANDOFF - TIMEPOINT Flash v2.0
 
-**Status**: v2.0.1 - Streaming Refactor Complete
-**Date**: 2025-12-01
+**Status**: v2.0.3 - Free Model Support & Image Generation Fix
+**Date**: 2025-12-02
 **Branch**: `main`
 
 ---
@@ -84,6 +84,36 @@
   - CLI flags for port, host, workers, reload
   - Production mode (`-P`) and debug mode (`-d`)
   - Colored terminal output with ASCII banner
+
+### Phase 9: Free Model Support & Rate Limit Resilience
+- **Free Model Discovery API** (`/api/v1/models/free`)
+  - Real-time fetch of available free models from OpenRouter
+  - `best` recommendation (highest context/capability)
+  - `fastest` recommendation (Gemini Flash priority, 32K minimum context)
+  - Model capability validation for structured JSON output
+- **Rate Limit Cascade Fallback** (`app/core/llm_router.py`)
+  - Three-tier fallback: free model → paid model → Google provider
+  - Exponential backoff retry (5 attempts, 2s-120s)
+  - Automatic detection of `:free` model suffixes
+  - `PAID_FALLBACK_MODEL` constant for cascade target
+- **Image Generation Fix**
+  - Fixed model name format mismatch (OpenRouter vs Google native)
+  - Default `IMAGE_MODEL` now uses native format (`gemini-2.5-flash-image`)
+  - Router strips `google/` prefix for native Google provider
+- **Demo CLI Enhancements** (`demo.sh`)
+  - RAPID TEST - One-click hyper preset test
+  - RAPID TEST FREE - Zero-cost testing with free model + native image gen
+  - Custom model selection (browse, natural language, manual)
+  - Anachronism mitigation prompts
+  - Port conflict handling (`-k` kill flag, adaptive port)
+- **Dialog Agent Improvements**
+  - Historical authenticity constraints
+  - Anachronism detection and avoidance
+  - Period-appropriate vocabulary enforcement
+- **Schema Fixes**
+  - Fixed `MomentData.plot_beats` type annotation
+  - Fixed `CameraData.composition` type annotation
+  - Fixed `CharacterData` schema validation
 
 ---
 
@@ -227,6 +257,26 @@ See `.env.example` for complete list.
 - **265 tests passing** with comprehensive coverage
 - **All APIs complete** - CRUD, streaming, temporal, models
 - **Production ready** - Docker, migrations, cloud configs
+
+---
+
+## v2.0.3 Release
+
+**Tag**: `v2.0.3`
+**Date**: 2025-12-02
+
+### New in v2.0.3
+- **Free Model Support** - `/api/v1/models/free` endpoint for zero-cost generation
+- **Rate Limit Resilience** - Three-tier cascade fallback (free → paid → Google)
+- **Image Generation Fix** - RAPID TEST FREE now generates images correctly
+- **Demo CLI** - RAPID TEST, RAPID TEST FREE, custom model selection
+- **Anachronism Mitigation** - Historical authenticity in dialog generation
+
+### Bug Fixes
+- Fixed `IMAGE_MODEL` default format (removed `google/` prefix)
+- Fixed model routing for Google native image generation
+- Fixed `MomentData.plot_beats` and `CameraData.composition` types
+- Fixed `CharacterData` schema validation
 
 ---
 
