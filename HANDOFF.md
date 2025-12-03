@@ -1,6 +1,6 @@
 # HANDOFF - TIMEPOINT Flash v2.0
 
-**Status**: v2.0.9 - Proactive Rate Limiting
+**Status**: v2.0.10 - HD Preset Fix & Comprehensive Testing
 **Date**: 2025-12-03
 **Branch**: `main`
 
@@ -246,6 +246,28 @@
   - 25 tests for TokenBucket, tier detection, registry, concurrency
   - Tests for graceful degradation and failure tracking
 
+### Phase 16: HD Preset Fix & Comprehensive Testing
+- **HD Preset Configuration Fix** (`app/config.py`)
+  - Fixed HD preset `text_model` from unavailable `gemini-3-pro-preview` to `gemini-2.5-pro-preview`
+  - Updated HD preset `judge_model` to `gemini-2.5-flash` for fast validation
+  - Updated HD preset `image_model` to reliable `gemini-2.5-flash-image`
+  - HD preset now uses working Google native models throughout
+- **SSE Streaming Fix** (`app/api/v1/timepoints.py`)
+  - Fixed SSE start event to include `preset` in data payload
+  - Demo CLI now shows correct preset being used
+- **Demo CLI Improvements** (`demo.sh`)
+  - Fixed case statement to explicitly handle option 2 for Balanced preset
+  - Updated HD preset description to reflect new model configuration
+- **Comprehensive Test Suite** (`test-demo.sh` v2.0.5)
+  - **Preset Configuration Tests**: Validates all 3 presets are accepted
+  - **Generation Tests**: Supports per-preset testing with `--preset` flag
+  - **Bulk Mode**: `--bulk` flag tests all presets end-to-end
+  - **Delete Test**: Create and delete timepoint validation
+  - **Error Handling Tests**: Invalid ID (404), empty query (422)
+  - **SSE Validation**: Verifies start event includes preset
+  - **Verbose Mode**: `--verbose` flag for detailed output
+  - 18 tests total (15 quick + 3 generation-dependent)
+
 ---
 
 ## Repository Structure
@@ -395,6 +417,32 @@ See `.env.example` for complete list.
 - **Adaptive parallelism** - FREE models run sequentially to avoid rate limits
 - **Hyper parallelism** - HYPER preset uses MAX mode with optimized execution flow
 - **Proactive rate limiting** - Token bucket prevents 429s before they happen
+
+---
+
+## v2.0.10 Release
+
+**Tag**: `v2.0.10`
+**Date**: 2025-12-03
+
+### New in v2.0.10
+- **HD Preset Fix** - Updated HD preset to use working `gemini-2.5-pro-preview` model
+- **SSE Preset Display** - Fixed start event to include preset in data payload
+- **Comprehensive Test Suite** - `test-demo.sh` v2.0.5 with bulk testing support
+- **Demo CLI Improvements** - Fixed case statement and updated preset descriptions
+
+### Technical Details
+- HD preset `text_model`: `gemini-3-pro-preview` → `gemini-2.5-pro-preview`
+- HD preset `image_model`: `gemini-3-pro-image-preview` → `gemini-2.5-flash-image` (reliable)
+- SSE start event now includes `preset` field for display
+- `test-demo.sh` supports `--bulk`, `--preset <name>`, `--verbose` flags
+
+### Test Suite Features
+- **Quick Mode** (`--quick`): 15 fast endpoint tests
+- **Standard Mode**: 18 tests including hyper generation
+- **Bulk Mode** (`--bulk`): Tests all presets (hyper, balanced, hd)
+- **Preset Mode** (`--preset hd`): Test specific preset only
+- **Verbose Mode** (`--verbose`): Detailed output for debugging
 
 ---
 
