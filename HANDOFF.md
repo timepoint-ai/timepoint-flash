@@ -1,7 +1,7 @@
 # HANDOFF - TIMEPOINT Flash v2.0
 
-**Status**: v2.0.10 - HD Preset Fix & Comprehensive Testing
-**Date**: 2025-12-03
+**Status**: v2.1.0 - Character Interactions
+**Date**: 2025-12-04
 **Branch**: `main`
 
 ---
@@ -268,6 +268,91 @@
   - **Verbose Mode**: `--verbose` flag for detailed output
   - 18 tests total (15 quick + 3 generation-dependent)
 
+### Phase 17: Bulletproof Model Validation
+- **VerifiedModels Class** (`app/config.py`)
+  - `GOOGLE_TEXT`: Verified working text models (`gemini-2.5-flash`, `gemini-2.0-flash`)
+  - `GOOGLE_IMAGE`: Verified working image models (`gemini-2.5-flash-image`)
+  - `OPENROUTER_TEXT`: Verified OpenRouter models (`google/gemini-2.0-flash-001`)
+  - `TEXT_FALLBACK_CHAIN`: Ordered fallback models for reliability
+  - Helper methods: `is_verified_text_model()`, `get_safe_text_model()`, `get_safe_image_model()`
+- **Startup Validation** (`app/main.py`)
+  - `validate_presets_or_raise()` called at startup
+  - Server fails fast if any preset uses unverified model
+  - Logs confirmation: "Model configuration validated - all presets use verified models"
+- **Preset Configuration Hardening** (`app/config.py`)
+  - All presets now reference `VerifiedModels` constants
+  - HD: `gemini-2.5-flash` (with extended thinking) + `gemini-2.5-flash-image`
+  - Balanced: `gemini-2.5-flash` + `gemini-2.5-flash-image`
+  - Hyper: `google/gemini-2.0-flash-001` (OpenRouter) + `gemini-2.5-flash-image`
+  - Comments indicate which VerifiedModels constant each model comes from
+- **LLM Router Fallback Hardening** (`app/core/llm_router.py`)
+  - `PAID_FALLBACK_MODEL` now uses `VerifiedModels.OPENROUTER_TEXT[0]`
+  - Fallback to Google provider uses `VerifiedModels.get_safe_text_model()`
+  - All fallback paths guaranteed to use working models
+- **Settings Default Fix** (`app/config.py`)
+  - `CREATIVE_MODEL` default changed from unavailable `gemini-3-pro-preview` to `gemini-2.5-flash`
+- **validate_presets() Function** (`app/config.py`)
+  - Validates text_model, judge_model, image_model for each preset
+  - Checks against correct VerifiedModels list based on provider
+  - Returns list of errors or empty list if valid
+
+### Phase 18: Character Interactions
+- **Character Chat System** (`app/agents/character_chat.py`)
+  - `CharacterChatAgent` - In-character conversations with historical figures
+  - `ChatInput` - Character context, message, history
+  - `ChatOutput` - Response with emotional tone detection
+  - `ChatSessionManager` - In-memory session management with conversation history
+- **Dialog Extension** (`app/agents/dialog_extension.py`)
+  - `DialogExtensionAgent` - Generate additional dialog lines
+  - Sequential roleplay mode for authentic character voices
+  - Prompt-directed dialog generation (e.g., "discuss the risks")
+- **Survey System** (`app/agents/survey.py`)
+  - `SurveyAgent` - Survey multiple characters with questions
+  - Parallel mode (faster) and sequential mode (context-aware)
+  - Chain prompts option to share prior answers
+  - Sentiment analysis: positive, negative, mixed, neutral
+  - Emotional tone detection and key points extraction
+- **Chat Schemas** (`app/schemas/chat.py`)
+  - `ChatMessage`, `ChatSession`, `ChatSessionSummary`
+  - `ChatRequest`, `ChatResponse`
+  - `DialogExtensionRequest`, `DialogExtensionResponse`
+  - `SurveyRequest`, `SurveyResult`, `SurveyMode`
+- **Interactions API** (`app/api/v1/interactions.py`)
+  - POST `/api/v1/interactions/{id}/chat` - Chat with character
+  - POST `/api/v1/interactions/{id}/chat/stream` - SSE streaming chat
+  - POST `/api/v1/interactions/{id}/dialog` - Extend dialog
+  - POST `/api/v1/interactions/{id}/dialog/stream` - SSE streaming dialog
+  - POST `/api/v1/interactions/{id}/survey` - Survey characters
+  - POST `/api/v1/interactions/{id}/survey/stream` - SSE streaming survey
+  - GET `/api/v1/interactions/sessions/{timepoint_id}` - List sessions
+  - GET/DELETE `/api/v1/interactions/session/{session_id}` - Get/delete session
+- **Demo CLI Integration** (`demo.sh`)
+  - Menu item 11: Chat with Character
+  - Menu item 12: Extend Dialog
+  - Menu item 13: Survey Characters
+- **Test Coverage** (`test-demo.sh` v2.0.7)
+  - Character interaction endpoint tests (router mounted, validation)
+  - Integration tests with real timepoints (chat, dialog, survey)
+
+### Phase 19: Character Chat Streaming Fixes
+- **LLMRouter Streaming Support** (`app/core/llm_router.py`)
+  - Added `stream()` async generator method for token-by-token streaming
+  - Added `AsyncIterator` import from `collections.abc`
+  - Wraps `call()` method and yields complete response (true streaming can be added later)
+  - Fixes `'LLMRouter' object has no attribute 'stream'` error
+- **Demo CLI Field Name Fix** (`demo.sh`)
+  - Fixed chat endpoint JSON field: `character_name` → `character`
+  - Fixed dialog endpoint JSON field: `character_name` → `character`
+  - Fixed survey endpoint JSON field: `character_names` → `characters`
+  - Fixes 422 Unprocessable Entity validation errors
+- **Demo CLI SSE Event Fix** (`demo.sh`)
+  - Fixed chat streaming event handler to use correct event names
+  - Changed from `response|chunk` events to `token|done` events
+  - Fixes empty response display despite 200 OK status
+- **Test Coverage** (`test-demo.sh` v2.0.8)
+  - Added SSE event validation test for chat streaming
+  - Verifies API returns `token` and `done` events (not `response` or `chunk`)
+
 ---
 
 ## Repository Structure
@@ -279,14 +364,14 @@ timepoint-flash/
 │   ├── config.py            # Pydantic settings
 │   ├── models.py            # SQLAlchemy models
 │   ├── database.py          # Database connection
-│   ├── agents/              # 12 agent implementations
+│   ├── agents/              # 15 agent implementations (10 pipeline + 3 interaction + 2 bio)
 │   ├── core/                # Provider, router, temporal
 │   ├── schemas/             # Pydantic response models
 │   ├── prompts/             # Prompt templates
-│   └── api/v1/              # API routes
+│   └── api/v1/              # API routes (timepoints, temporal, models, interactions)
 ├── tests/
-│   ├── unit/                # 226 fast unit tests
-│   └── integration/         # 39 integration tests
+│   ├── unit/                # Fast unit tests
+│   └── integration/         # API integration tests
 ├── alembic/                 # Database migrations
 │   ├── env.py              # Async migration environment
 │   └── versions/           # Migration scripts
@@ -373,6 +458,19 @@ alembic upgrade head
 | GET | `/providers` | Provider status |
 | GET | `/{model_id}` | Model details |
 
+### Interactions API (`/api/v1/interactions`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/{id}/chat` | Chat with character |
+| POST | `/{id}/chat/stream` | Stream chat response |
+| POST | `/{id}/dialog` | Extend dialog |
+| POST | `/{id}/dialog/stream` | Stream dialog lines |
+| POST | `/{id}/survey` | Survey characters |
+| POST | `/{id}/survey/stream` | Stream survey results |
+| GET | `/sessions/{id}` | List chat sessions |
+| GET | `/session/{id}` | Get session |
+| DELETE | `/session/{id}` | Delete session |
+
 ---
 
 ## Environment Variables
@@ -410,13 +508,79 @@ See `.env.example` for complete list.
 ## Important Notes
 
 - **Python 3.10** required for SQLAlchemy compatibility
-- **362 tests passing** with comprehensive coverage
-- **12 specialized agents** for temporal generation
-- **All APIs complete** - CRUD, streaming, temporal, models
+- **15 specialized agents** - 10 pipeline + 3 interaction + 2 character bio
+- **All APIs complete** - CRUD, streaming, temporal, models, interactions
 - **Production ready** - Docker, migrations, cloud configs
 - **Adaptive parallelism** - FREE models run sequentially to avoid rate limits
 - **Hyper parallelism** - HYPER preset uses MAX mode with optimized execution flow
 - **Proactive rate limiting** - Token bucket prevents 429s before they happen
+- **Character interactions** - Chat, dialog extension, survey with SSE streaming
+
+---
+
+## v2.1.0 Release
+
+**Tag**: `v2.1.0`
+**Date**: 2025-12-04
+
+### New in v2.1.0
+- **Character Interactions** - Chat with characters, extend dialog, survey multiple characters
+- **SSE Streaming** - All interaction endpoints support real-time streaming
+- **Sentiment Analysis** - Survey responses include sentiment (positive/negative/mixed/neutral)
+- **Emotional Tone** - Character responses include emotional tone detection
+- **Session Management** - In-memory conversation history with session continuation
+- **Demo CLI** - Menu items 11, 12, 13 for character interactions
+- **Test Suite** - test-demo.sh v2.0.7 with interaction endpoint tests
+
+### Technical Details
+- 3 new agents: CharacterChatAgent, DialogExtensionAgent, SurveyAgent
+- New schema module: `app/schemas/chat.py`
+- Interactions API: `/api/v1/interactions/`
+- Survey modes: parallel (faster) and sequential (context-aware)
+- Chain prompts option for sequential surveys
+
+### Endpoints Added
+- POST `/api/v1/interactions/{id}/chat` - Chat with character
+- POST `/api/v1/interactions/{id}/chat/stream` - Stream chat
+- POST `/api/v1/interactions/{id}/dialog` - Extend dialog
+- POST `/api/v1/interactions/{id}/dialog/stream` - Stream dialog
+- POST `/api/v1/interactions/{id}/survey` - Survey characters
+- POST `/api/v1/interactions/{id}/survey/stream` - Stream survey
+- GET `/api/v1/interactions/sessions/{id}` - List sessions
+- GET/DELETE `/api/v1/interactions/session/{id}` - Session CRUD
+
+---
+
+## v2.0.11 Release
+
+**Tag**: `v2.0.11`
+**Date**: 2025-12-03
+
+### New in v2.0.11
+- **Bulletproof Model Validation** - Impossible to use invalid models
+- **VerifiedModels Class** - Centralized list of tested, working models
+- **Startup Validation** - Server fails fast if preset uses unverified model
+- **Fallback Hardening** - All fallback paths use verified models
+
+### Technical Details
+- `VerifiedModels` class in `app/config.py` with all working models
+- `validate_presets_or_raise()` called at server startup
+- All presets reference VerifiedModels constants (with comments)
+- LLM router fallback uses `VerifiedModels.get_safe_text_model()`
+- `CREATIVE_MODEL` default fixed from `gemini-3-pro-preview` to `gemini-2.5-flash`
+
+### Verified Models
+```python
+GOOGLE_TEXT = ["gemini-2.5-flash", "gemini-2.0-flash"]
+GOOGLE_IMAGE = ["gemini-2.5-flash-image"]
+OPENROUTER_TEXT = ["google/gemini-2.0-flash-001", "google/gemini-2.0-flash-001:free"]
+```
+
+### Safety Guarantees
+1. **Startup Check** - Invalid presets prevent server start
+2. **Fallback Safety** - All fallback models are verified
+3. **Comment Documentation** - Each preset model has VerifiedModels reference
+4. **Helper Methods** - `get_safe_text_model()`, `get_safe_image_model()`
 
 ---
 
