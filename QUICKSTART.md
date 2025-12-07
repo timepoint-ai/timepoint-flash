@@ -75,7 +75,7 @@ uvicorn app.main:app --reload --port 8000
 ```bash
 # Check root health
 curl http://localhost:8000/health
-# Returns: {"status": "healthy", "version": "2.0.0"}
+# Returns: {"status": "healthy", "version": "2.2.0"}
 
 # Check API health
 curl http://localhost:8000/api/v1/health
