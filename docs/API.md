@@ -1,6 +1,6 @@
 # TIMEPOINT Flash API Reference
 
-Complete API documentation for TIMEPOINT Flash v2.0.
+Complete API documentation for TIMEPOINT Flash v2.2.0.
 
 Base URL: `http://localhost:8000`
 
@@ -16,7 +16,7 @@ Root health check.
 ```json
 {
   "status": "healthy",
-  "version": "2.0.0"
+  "version": "2.2.0"
 }
 ```
 
