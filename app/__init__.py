@@ -1,3 +1,3 @@
-"""TIMEPOINT Flash v2.0 - AI-powered temporal simulation system."""
+"""TIMEPOINT Flash - AI-powered temporal simulation system."""
 
-__version__ = "2.0.0"
+__version__ = "2.2.0"

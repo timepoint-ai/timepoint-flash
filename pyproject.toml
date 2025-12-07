@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "timepoint-flash"
-version = "2.0.0"
+version = "2.2.0"
 description = "AI-powered temporal simulation system"
 readme = "README.md"
 license = "MIT"
@@ -68,16 +68,43 @@ observability = [
     "logfire>=2.0.0",
 ]
 
-[project.scripts]
-tp = "app.cli:cli"
+# CLI entry point (uncomment when app/cli.py is implemented)
+# [project.scripts]
+# tp = "app.cli:cli"
 
 [project.urls]
-Homepage = "https://github.com/timepoint-flash"
-Documentation = "https://github.com/timepoint-flash/docs"
-Repository = "https://github.com/timepoint-flash"
+Homepage = "https://github.com/realityinspector/timepoint-flash"
+Documentation = "https://github.com/realityinspector/timepoint-flash#readme"
+Repository = "https://github.com/realityinspector/timepoint-flash"
+Issues = "https://github.com/realityinspector/timepoint-flash/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    # Directories
+    "alembic/",
+    "tests/",
+    "archive/",
+    "images/",
+    ".claude/",
+    # Database files
+    "*.db",
+    "*.sqlite",
+    "*.sqlite3",
+    # Environment files
+    ".env",
+    ".env.*",
+    # Duplicate files (macOS Finder copies)
+    "*[[:space:]][0-9].*",
+    "*[[:space:]][0-9]",
+    "HANDOFF 2.md",
+    "HANDOFF 3.md",
+    "test-demo 2.sh",
+    "test-demo 3.sh",
+    "test-demo 4.sh",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

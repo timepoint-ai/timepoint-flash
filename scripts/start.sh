@@ -4,7 +4,7 @@
 
 set -e
 
-echo "=== TIMEPOINT Flash v2.0 ==="
+echo "=== TIMEPOINT Flash v2.2.0 ==="
 echo "Environment: ${ENVIRONMENT:-development}"
 
 # Run database migrations

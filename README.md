@@ -1,4 +1,4 @@
-# TIMEPOINT Flash v2.0
+# TIMEPOINT Flash v2.2.0
 
 AI-powered photorealistic time travel system with multi-agent workflows, temporal navigation, character interactions, and batteries-included developer experience.
 
@@ -6,7 +6,7 @@ AI-powered photorealistic time travel system with multi-agent workflows, tempora
 
 ## Overview
 
-TIMEPOINT Flash generates immersive historical moments using a pipeline of 12 specialized AI agents. Given a natural language query like "signing of the declaration of independence", it produces:
+TIMEPOINT Flash generates immersive historical moments using a pipeline of 15 specialized AI agents. Given a natural language query like "signing of the declaration of independence", it produces:
 
 - Validated temporal coordinates (year, season, time of day)
 - Detailed scene environment and atmosphere
@@ -17,7 +17,7 @@ TIMEPOINT Flash generates immersive historical moments using a pipeline of 12 sp
 - Photorealistic image prompt
 - Optional generated image
 
-**NEW in v2.1**: Chat with characters, extend dialog, and survey characters for their perspectives.
+**NEW in v2.2**: Model selection for character interactions, plus chat, dialog extension, and character surveys.
 
 ## Quick Start
 
@@ -121,7 +121,7 @@ Query -> JudgeAgent -> TimelineAgent -> SceneAgent -> CharactersAgent
 ImageGenAgent <- ImagePromptAgent <- GraphAgent <- CameraAgent <- DialogAgent <- MomentAgent
 ```
 
-### 12 Specialized Agents
+### 15 Specialized Agents
 
 **Generation Pipeline:**
 1. **JudgeAgent** - Query validation and classification
@@ -205,7 +205,7 @@ python3.10 -m pytest -v
 
 ### Test Coverage
 
-- 265+ unit tests
+- 514 tests
 - Covers all agents, schemas, API endpoints
 - Fast tests complete in ~6 seconds
 
@@ -218,7 +218,7 @@ timepoint-flash/
 │   ├── config.py            # Pydantic settings
 │   ├── models.py            # SQLAlchemy models
 │   ├── database.py          # Database connection
-│   ├── agents/              # 10 agent implementations
+│   ├── agents/              # 15 agent implementations
 │   ├── core/                # Provider, router, temporal
 │   ├── schemas/             # Pydantic response models
 │   ├── prompts/             # Prompt templates
@@ -238,7 +238,6 @@ timepoint-flash/
 - [docs/API.md](docs/API.md) - Complete API reference
 - [docs/TEMPORAL.md](docs/TEMPORAL.md) - Temporal navigation guide
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) - Deployment guide
-- [REFACTOR.md](REFACTOR.md) - v2.0 architecture plan
 - [HANDOFF.md](HANDOFF.md) - Development handoff guide
 
 ---
@@ -265,4 +264,4 @@ MIT License - see LICENSE file for details.
 
 **Built with** FastAPI | LangGraph | Google Gemini | Pydantic | SQLAlchemy
 
-**v2.0 Status**: Complete - Ready for Production
+**v2.2.0 Status**: Complete - Ready for Production
