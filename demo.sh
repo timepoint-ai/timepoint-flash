@@ -1576,7 +1576,7 @@ test_all_endpoints() {
 # Helper: Select a timepoint for interaction
 select_timepoint_for_interaction() {
     echo -e "${CYAN}Fetching completed timepoints...${NC}"
-    response=$(curl -s "$API_BASE/api/v1/timepoints?page_size=20&status=completed")
+    response=$(curl -s "$API_BASE/api/v1/timepoints?page_size=100&status=completed")
 
     total=$(echo "$response" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('total',0))" 2>/dev/null || echo "0")
 
