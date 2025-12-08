@@ -7,7 +7,7 @@ name = "timepoint-flash"
 version = "2.2.0"
 description = "AI-powered temporal simulation system"
 readme = "README.md"
-license = "MIT"
+license = "Apache-2.0"
 requires-python = ">=3.10"
 authors = [
     { name = "TIMEPOINT", email = "dev@timepoint.ai" }
@@ -17,7 +17,7 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Framework :: FastAPI",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
