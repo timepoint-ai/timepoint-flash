@@ -1,7 +1,7 @@
 # HANDOFF - TIMEPOINT Flash v2.0
 
 **Status**: v2.2.0 - Model Selection for Interactions
-**Date**: 2025-12-04
+**Date**: 2025-12-09
 **Branch**: `main`
 
 ---
@@ -373,7 +373,7 @@
   - `_should_use_structured()` method determines response format based on model capabilities
   - Router created with custom model if specified
 - **Demo CLI Model Selection** (`demo.sh`)
-  - `select_interaction_model()` function with 7 model options
+  - `select_interaction_model()` function with model options
   - Model selection before Chat (11), Dialog (12), Survey (13)
   - `build_interaction_payload()` helper adds model/response_format to JSON
   - Visual feedback showing selected model during operation
@@ -381,6 +381,19 @@
   - Tests for model parameter acceptance on all interaction endpoints
   - Integration test with model override (`gemini-2.5-flash`)
   - Response format validation tests
+
+### Phase 21: Bug Fixes & Model Updates
+- **Image Generation Fix** (`app/core/model_capabilities.py`)
+  - Fixed `response_modalities` from `["IMAGE"]` to `["TEXT", "IMAGE"]` per Google docs
+  - Resolves "Response may contain text only" error on image generation
+- **Test Demo Validation Fix** (`test-demo.sh`)
+  - Changed test query from "simple test scene" to "wright brothers first flight 1903"
+  - JudgeAgent was rejecting vague queries as invalid
+  - Image generation test now uses historically valid query
+- **Demo CLI Model Updates** (`demo.sh`)
+  - Added Claude Opus 4.5 (`anthropic/claude-opus-4.5`) - Anthropic frontier reasoning
+  - Added Claude Sonnet 4.5 (`anthropic/claude-sonnet-4.5`) - Optimized for coding/agents
+  - Model selection menu now has 11 options (was 9)
 
 ---
 
@@ -566,14 +579,18 @@ See `.env.example` for complete list.
 - `select_interaction_model()` in demo.sh for model selection
 - `build_interaction_payload()` helper for JSON construction
 
-### Model Selection Options
-1. Default - Server default model
-2. Gemini 2.5 Flash - Google native, fast
-3. Gemini 2.0 Flash - Via OpenRouter
-4. Claude 3.5 Sonnet - Via OpenRouter
-5. GPT-4o - Via OpenRouter
-6. GPT-4o Mini - Via OpenRouter
-7. Custom - Enter any model ID
+### Model Selection Options (demo.sh)
+1. Default - Server default model (gemini-2.5-flash)
+2. Claude Opus 4.5 - Anthropic frontier reasoning via OpenRouter
+3. Claude Sonnet 4.5 - Anthropic best for coding/agents via OpenRouter
+4. Claude Opus 4 - Anthropic flagship via OpenRouter
+5. Claude Sonnet 4 - Anthropic balanced via OpenRouter
+6. Claude 3.5 Sonnet - Anthropic via OpenRouter
+7. GPT-4 - OpenAI via OpenRouter
+8. Llama 3.1 405B - Meta flagship via OpenRouter
+9. Llama 3.1 70B - Meta large via OpenRouter
+10. Qwen 2.5 3B - Alibaba small/fast via OpenRouter
+11. Custom - Enter any model ID
 
 ---
 
