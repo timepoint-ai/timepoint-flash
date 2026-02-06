@@ -1,0 +1,16 @@
+Documentation update for v2.3.2 quality enhancements.
+
+Updated files:
+- docs/AGENTS.md: pipeline diagram, agent table, code listing, execution phases
+- docs/API.md: pipeline summary under endpoints overview
+- docs/EVAL_ROADMAP.md: current state, quality enhancements v2.3.2 (items 8-12)
+
+New capabilities documented:
+1. CritiqueAgent (dialog review + auto-retry)
+2. Voice differentiation by social register
+3. Emotional transfer in image optimizer (tension → body language)
+4. Grounding → character identification pipeline
+5. Graph relationship pruning (2x cap, salience threshold)
+6. Character cap reduced to 6
+
+Tests: 496 passing (402 unit + 81 integration + 13 e2e)
