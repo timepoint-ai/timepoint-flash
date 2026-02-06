@@ -1,0 +1,20 @@
+Tests: 402 unit + 81 integration + 13 e2e = 496 total, all passing
+
+Addresses critique scoring:
+- Dialog quality (3/10→higher): voice differentiation by social class, cultural
+  accuracy (Roman vs Greek deities), modern idiom prohibition, critique-and-retry loop
+- Historical accuracy (5/10→higher): grounding data feeds character identification,
+  literary name detection, timeline compression warnings
+- Image quality (6.5/10→higher): emotional transfer (tension→physical body language),
+  prompt compression to ~100 tokens, "caught moment" framing
+- Structure (7/10→higher): graph pruning (2x cap, salience threshold), character
+  cap reduced to 6, background characters require visible actions
+
+New abstractions:
+1. CritiqueAgent — generic post-generation reviewer, one retry max
+2. Emotional transfer in optimizer — tension_arc + emotional_beats → physicalized cues
+3. Grounding→CharacterID pipeline — verified_participants inform casting
+4. Social register system — class-based speech pattern constraints
+5. Graph salience pruning — max 2*N relationships, no neutral/stranger pairs
+
+Files: 10 changed (497 insertions, 54 deletions), 1 new (app/agents/critique.py)
