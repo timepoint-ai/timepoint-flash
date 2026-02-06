@@ -1,0 +1,8 @@
+Tests: 402 unit + 81 integration + 13 e2e = 496 total, all passing
+
+Bugs fixed:
+1. Async /generate endpoint ignored generate_image, preset, text_model, image_model params
+2. Background generation didn't save image_base64, image_model_used, slug to DB
+3. Temporal /next and /prior endpoints never generated images (missing generate_image=True)
+
+Files changed: app/api/v1/timepoints.py, app/api/v1/temporal.py, docs/API.md, docs/EVAL_ROADMAP.md
