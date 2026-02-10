@@ -68,6 +68,26 @@ async def get_current_user(
     return user
 
 
+async def require_admin_key(request: Request) -> None:
+    """Verify the X-Admin-Key header matches ADMIN_API_KEY.
+
+    Returns 403 if the key is empty (disabled) or doesn't match.
+    """
+    settings = get_settings()
+    if not settings.ADMIN_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin endpoints are disabled (ADMIN_API_KEY not set)",
+        )
+
+    provided = request.headers.get("X-Admin-Key", "")
+    if provided != settings.ADMIN_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid admin key",
+        )
+
+
 def require_credits(cost: int) -> Callable:
     """Factory that returns a dependency checking the user has enough credits.
 
