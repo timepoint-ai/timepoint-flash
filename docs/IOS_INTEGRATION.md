@@ -17,6 +17,7 @@ Reference for building the TIMEPOINT Flash iOS client. Covers credentials, auth 
 | `JWT_REFRESH_EXPIRE_DAYS` | No | `30` | Refresh token lifetime |
 | `APPLE_BUNDLE_ID` | If auth enabled | — | iOS app bundle ID for Apple Sign-In validation |
 | `SIGNUP_CREDITS` | No | `50` | Free credits on first sign-in |
+| `ADMIN_API_KEY` | No | `""` | Secret key for dev admin endpoints (test user creation, credit grants). Empty = disabled. |
 | `ENVIRONMENT` | No | `development` | `development`, `staging`, or `production` |
 | `DEBUG` | No | `true` | Enables `/docs` and `/redoc` Swagger UI |
 | `RATE_LIMIT` | No | `60` | Requests per minute per IP |
@@ -27,6 +28,26 @@ Reference for building the TIMEPOINT Flash iOS client. Covers credentials, auth 
 ---
 
 ## 2. Auth Flow
+
+### Dev Admin Setup (Testing Without iOS)
+
+To test the full auth flow without an iOS device, set the `ADMIN_API_KEY` secret and use the dev admin endpoints:
+
+```bash
+# Create a test user and get JWTs
+curl -X POST $BASE/api/v1/auth/dev/token \
+  -H "X-Admin-Key: your-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@example.com"}'
+
+# Grant additional credits
+curl -X POST $BASE/api/v1/credits/admin/grant \
+  -H "X-Admin-Key: your-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "<id>", "amount": 100}'
+```
+
+These endpoints are gated behind `ADMIN_API_KEY` and return 403 when the key is empty or missing.
 
 ### Apple Sign-In → JWT Pair
 
@@ -119,6 +140,7 @@ All endpoints are under `/api/v1`. Prefix with your base URL.
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | `POST` | `/auth/apple` | None | Apple Sign-In → JWT pair |
+| `POST` | `/auth/dev/token` | `X-Admin-Key` | Dev admin: create test user → JWT pair |
 | `POST` | `/auth/refresh` | None | Rotate refresh token |
 | `GET` | `/auth/me` | Bearer | Current user profile |
 | `POST` | `/auth/logout` | None | Revoke refresh token |
@@ -130,6 +152,7 @@ All endpoints are under `/api/v1`. Prefix with your base URL.
 |--------|------|------|-------------|
 | `GET` | `/credits/balance` | Bearer | Current balance |
 | `GET` | `/credits/history` | Bearer | Paginated ledger (`?limit=20&offset=0`) |
+| `POST` | `/credits/admin/grant` | `X-Admin-Key` | Dev admin: grant credits to any user |
 | `GET` | `/credits/costs` | None | Cost table |
 
 ### Generation
