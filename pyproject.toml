@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "timepoint-flash"
-version = "2.3.0"
+version = "2.4.0"
 description = "AI-powered temporal simulation system"
 readme = "README.md"
 license = "Apache-2.0"
@@ -47,6 +47,9 @@ dependencies = [
     # CLI
     "click>=8.1.0",
     "rich>=13.9.0",
+
+    # Auth
+    "PyJWT[crypto]>=2.8",
 
     # Utilities
     "python-dotenv>=1.0.0",

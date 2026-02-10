@@ -30,6 +30,9 @@ os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///./test_timepoint.db")
 # Set dummy API keys for tests that don't actually call APIs
 os.environ.setdefault("GOOGLE_API_KEY", "test-google-key-for-testing")
 os.environ.setdefault("OPENROUTER_API_KEY", "test-openrouter-key-for-testing")
+# Auth test defaults
+os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-for-testing")
+os.environ.setdefault("AUTH_ENABLED", "false")
 
 
 # ============================================================================
