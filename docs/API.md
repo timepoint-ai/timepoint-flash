@@ -68,11 +68,24 @@ Override preset models for custom configurations:
 
 | Category | Endpoint | Description |
 |----------|----------|-------------|
+| **Auth** | `POST /api/v1/auth/apple` | Apple Sign-In → JWT pair |
+| **Auth** | `POST /api/v1/auth/refresh` | Rotate refresh token |
+| **Auth** | `GET /api/v1/auth/me` | Current user profile |
+| **Auth** | `POST /api/v1/auth/logout` | Revoke refresh token |
+| **Auth** | `DELETE /api/v1/auth/account` | Soft-delete user account |
+| **Credits** | `GET /api/v1/credits/balance` | Current credit balance |
+| **Credits** | `GET /api/v1/credits/history` | Paginated transaction ledger |
+| **Credits** | `GET /api/v1/credits/costs` | Credit cost table |
+| **Users** | `GET /api/v1/users/me/timepoints` | User's timepoints (paginated) |
+| **Users** | `GET /api/v1/users/me/export` | Full GDPR data export |
 | **Generate** | `POST /api/v1/timepoints/generate/stream` | Create a scene (streaming) - **recommended** |
 | **Generate** | `POST /api/v1/timepoints/generate/sync` | Create a scene (blocking) |
 | **Generate** | `POST /api/v1/timepoints/generate` | Create a scene (background task) |
 
 All generation endpoints run a 14-agent pipeline with critique loop: dialog is reviewed for anachronisms, cultural errors, and voice distinctiveness, and retried if critical issues are found. Characters are capped at 6 with social register-based voice differentiation. Image prompts translate narrative emotion into physicalized body language (~77 words).
+
+When `AUTH_ENABLED=true`, generation, chat, and temporal endpoints require a Bearer JWT and deduct credits. See [iOS Integration Guide](IOS_INTEGRATION.md) for full details.
+
 | **Get** | `GET /api/v1/timepoints/{id}` | Retrieve a scene |
 | **Chat** | `POST /api/v1/interactions/{id}/chat` | Talk to a character |
 | **Time Travel** | `POST /api/v1/temporal/{id}/next` | Jump forward |
@@ -544,6 +557,217 @@ List available models and presets for evaluation.
 
 ---
 
+## Authentication
+
+Auth endpoints are always available but only functional when `AUTH_ENABLED=true`.
+
+### POST /api/v1/auth/apple
+
+Verify an Apple identity token and return a JWT pair. Creates a new user on first sign-in and grants signup credits.
+
+**Request:**
+```json
+{
+  "identity_token": "eyJhbGciOiJSUzI1NiIs..."
+}
+```
+
+**Response:**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "refresh_token": "abc123...",
+  "token_type": "bearer",
+  "expires_in": 900
+}
+```
+
+---
+
+### POST /api/v1/auth/refresh
+
+Rotate a refresh token and return a new JWT pair. The old refresh token is revoked.
+
+**Request:**
+```json
+{
+  "refresh_token": "abc123..."
+}
+```
+
+**Response:** Same shape as `/auth/apple`.
+
+---
+
+### GET /api/v1/auth/me
+
+Return the current user's profile. Requires Bearer JWT.
+
+**Response:**
+```json
+{
+  "id": "550e8400-...",
+  "email": "user@example.com",
+  "display_name": null,
+  "created_at": "2026-02-09T12:00:00Z"
+}
+```
+
+---
+
+### POST /api/v1/auth/logout
+
+Revoke a refresh token. Always returns 200.
+
+**Request:**
+```json
+{
+  "refresh_token": "abc123..."
+}
+```
+
+**Response:**
+```json
+{
+  "detail": "Logged out"
+}
+```
+
+---
+
+### DELETE /api/v1/auth/account
+
+Soft-delete user account. Sets `is_active=false` and revokes all refresh tokens. Required for App Store compliance. Requires Bearer JWT.
+
+**Response:**
+```json
+{
+  "detail": "Account deactivated"
+}
+```
+
+---
+
+## Credits
+
+### GET /api/v1/credits/balance
+
+Current credit balance. Requires Bearer JWT.
+
+**Response:**
+```json
+{
+  "balance": 45,
+  "lifetime_earned": 50,
+  "lifetime_spent": 5
+}
+```
+
+---
+
+### GET /api/v1/credits/history
+
+Paginated transaction ledger. Requires Bearer JWT.
+
+**Query Params:**
+| Name | Type | Default |
+|------|------|---------|
+| limit | int | 20 |
+| offset | int | 0 |
+
+**Response:**
+```json
+[
+  {
+    "amount": -5,
+    "balance_after": 45,
+    "type": "generation",
+    "description": "Scene generation (balanced)",
+    "created_at": "2026-02-09T12:00:00Z"
+  }
+]
+```
+
+---
+
+### GET /api/v1/credits/costs
+
+Credit cost table. No auth required.
+
+**Response:**
+```json
+{
+  "costs": {
+    "generate_balanced": 5,
+    "generate_hd": 10,
+    "generate_hyper": 5,
+    "generate_gemini3": 5,
+    "chat": 1,
+    "temporal_jump": 2
+  }
+}
+```
+
+---
+
+## Users
+
+### GET /api/v1/users/me/timepoints
+
+Paginated list of the authenticated user's timepoints. Requires Bearer JWT.
+
+**Query Params:**
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| page | int | 1 | Page number |
+| page_size | int | 20 | Items per page (max 100) |
+| status | string | null | Filter by status (completed, failed, processing) |
+
+**Response:**
+```json
+{
+  "items": [
+    {
+      "id": "550e8400-...",
+      "query": "Oppenheimer Trinity test 1945",
+      "slug": "oppenheimer-trinity-test-a1b2c3",
+      "status": "completed",
+      "year": 1945,
+      "location": "Jornada del Muerto, New Mexico",
+      "has_image": true,
+      "created_at": "2026-02-09T12:00:00Z"
+    }
+  ],
+  "total": 42,
+  "page": 1,
+  "page_size": 20
+}
+```
+
+---
+
+### GET /api/v1/users/me/export
+
+Full JSON export of user data for GDPR Subject Access Request compliance. Returns profile, complete credit history, and full scene JSON for every user timepoint. Requires Bearer JWT.
+
+**Response:**
+```json
+{
+  "user": {
+    "id": "550e8400-...",
+    "email": "user@example.com",
+    "display_name": null,
+    "created_at": "2026-02-09T12:00:00Z",
+    "last_login_at": "2026-02-09T12:00:00Z",
+    "is_active": true
+  },
+  "credit_history": [...],
+  "timepoints": [...]
+}
+```
+
+---
+
 ## Health
 
 ### GET /health
@@ -612,6 +836,8 @@ All errors return:
 | Code | Meaning |
 |------|---------|
 | 400 | Invalid request state |
+| 401 | Unauthorized — missing/invalid/expired JWT (when `AUTH_ENABLED=true`) |
+| 402 | Payment Required — insufficient credits for the operation |
 | 404 | Not found |
 | 422 | Validation error |
 | 429 | Rate limit exceeded (triggers fallback internally) |
@@ -629,4 +855,4 @@ Rate limit: 60 requests/minute per IP.
 
 ---
 
-*Last updated: 2026-02-07*
+*Last updated: 2026-02-09*

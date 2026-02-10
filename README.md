@@ -80,8 +80,8 @@ POST /api/v1/temporal/{id}/next {"units": 1, "unit": "hour"}
 **Prerequisites:** Python 3.10+ and a Google API key ([free at AI Studio](https://aistudio.google.com))
 
 ```bash
-git clone https://github.com/timepoint-ai/timepoint-flash.git
-cd timepoint-flash
+git clone https://github.com/realityinspector/timepoint-flash-deploy.git
+cd timepoint-flash-deploy
 ./setup.sh            # Checks prereqs, installs deps, creates .env
 # Edit .env → add your GOOGLE_API_KEY
 ./quickstart.sh       # Starts server + generates a demo scene
@@ -97,6 +97,22 @@ cp .env.example .env  # Add your API key
 ```
 
 Swagger docs at `http://localhost:8000/docs`
+
+---
+
+## Deploy on Replit
+
+Import the repo directly from GitHub — Replit reads `.replit` and runs automatically.
+
+1. **Create a new Replit** → Import from GitHub → `https://github.com/realityinspector/timepoint-flash-deploy`
+2. **Set Secrets** (sidebar → Secrets tab):
+   - `GOOGLE_API_KEY` — get free at [aistudio.google.com](https://aistudio.google.com)
+   - `OPENROUTER_API_KEY` — get at [openrouter.ai](https://openrouter.ai) (optional, enables hyper/gemini3 presets)
+3. **Hit Run** — the server starts on port 8080 and Replit exposes a public URL
+
+The startup script (`start.sh`) handles dependency installation, database migrations, and schema patching automatically on every run. No manual setup required.
+
+Swagger docs at `https://your-repl.replit.dev/docs`
 
 ---
 
@@ -200,6 +216,11 @@ curl -X POST localhost:8000/api/v1/timepoints/generate/stream \
 | `POST /api/v1/temporal/{id}/next` | Jump forward in time |
 | `POST /api/v1/temporal/{id}/prior` | Jump backward in time |
 | `GET /api/v1/temporal/{id}/sequence` | Get linked timeline |
+| `POST /api/v1/auth/apple` | Apple Sign-In → JWT pair |
+| `POST /api/v1/auth/refresh` | Rotate refresh token |
+| `GET /api/v1/credits/balance` | Credit balance |
+| `GET /api/v1/credits/costs` | Credit cost table |
+| `GET /api/v1/users/me/timepoints` | User's scene history |
 | `POST /api/v1/eval/compare` | Compare model latencies |
 | `GET /api/v1/models/free` | List free OpenRouter models |
 
@@ -214,28 +235,36 @@ Full reference: [docs/API.md](docs/API.md)
 GOOGLE_API_KEY=your-key                              # Required (free at aistudio.google.com)
 OPENROUTER_API_KEY=your-key                          # Optional (for hyper/gemini3 presets)
 DATABASE_URL=sqlite+aiosqlite:///./timepoint.db      # Default storage
+
+# Auth (optional — for iOS app mode)
+AUTH_ENABLED=false                                    # Set true to require JWT auth
+JWT_SECRET_KEY=change-me-to-a-random-32-char-string  # Required when AUTH_ENABLED=true
+APPLE_BUNDLE_ID=com.yourcompany.app                  # Required when AUTH_ENABLED=true
+SIGNUP_CREDITS=50                                    # Free credits on first sign-in
 ```
+
+See [`.env.example`](.env.example) for the full list of environment variables.
 
 ---
 
 ## Testing
 
 ```bash
-python3.10 -m pytest tests/unit/ -v         # 447 unit tests
-python3.10 -m pytest tests/integration/ -v  # 81 integration tests
-python3.10 -m pytest tests/e2e/ -v          # 13 end-to-end tests
+python3.10 -m pytest tests/ -v              # 595 passed, 11 skipped (e2e needs API keys)
 ```
 
-541 tests covering generation, character interactions, temporal navigation, image fallback, historical grounding, schema validation, and provider failover.
+606 tests covering generation, character interactions, temporal navigation, image fallback, historical grounding, schema validation, and provider failover.
 
 ---
 
 ## Documentation
 
 - [API Reference](docs/API.md) — Full endpoint documentation
+- [iOS Integration](docs/IOS_INTEGRATION.md) — Auth flow, credit system, endpoint map for iOS client
 - [Agent Architecture](docs/AGENTS.md) — Pipeline breakdown with example output
 - [Temporal Navigation](docs/TEMPORAL.md) — Time travel mechanics
 - [Eval Roadmap](docs/EVAL_ROADMAP.md) — Quality scoring and benchmark plans
+- [Deployment](docs/DEPLOY.md) — Local, Replit, and production deployment
 
 ---
 

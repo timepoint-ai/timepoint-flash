@@ -28,11 +28,14 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.credits import CREDIT_COSTS, spend_credits
+from app.auth.dependencies import get_current_user, require_credits
 from app.config import get_settings
 from app.core.pipeline import GenerationPipeline
 from app.core.temporal import TemporalNavigator, TemporalPoint, TimeUnit
 from app.database import get_db_session
 from app.models import GenerationLog, Timepoint, TimepointStatus
+from app.models_auth import TransactionType, User
 
 logger = logging.getLogger(__name__)
 
@@ -159,6 +162,8 @@ async def generate_moment_from_context(
 async def generate_next_moment(
     timepoint_id: str,
     request: NavigationRequest,
+    user: User | None = Depends(get_current_user),
+    _credits=Depends(require_credits(CREDIT_COSTS["temporal_jump"])),
     session: AsyncSession = Depends(get_db_session),
 ) -> NavigationResponse:
     """Generate the next temporal moment from a timepoint.
@@ -178,6 +183,14 @@ async def generate_next_moment(
         HTTPException: If source timepoint not found
     """
     logger.info(f"Next moment request: {timepoint_id}, {request.units} {request.unit}")
+
+    # Spend credits if authenticated
+    if user is not None:
+        await spend_credits(
+            session, user.id, CREDIT_COSTS["temporal_jump"], TransactionType.TEMPORAL,
+            reference_id=timepoint_id,
+            description=f"Temporal jump: {request.units} {request.unit}(s) forward",
+        )
 
     # Get source timepoint
     result = await session.execute(
@@ -254,6 +267,8 @@ async def generate_next_moment(
 async def generate_prior_moment(
     timepoint_id: str,
     request: NavigationRequest,
+    user: User | None = Depends(get_current_user),
+    _credits=Depends(require_credits(CREDIT_COSTS["temporal_jump"])),
     session: AsyncSession = Depends(get_db_session),
 ) -> NavigationResponse:
     """Generate the prior temporal moment from a timepoint.
@@ -273,6 +288,14 @@ async def generate_prior_moment(
         HTTPException: If source timepoint not found
     """
     logger.info(f"Prior moment request: {timepoint_id}, {request.units} {request.unit}")
+
+    # Spend credits if authenticated
+    if user is not None:
+        await spend_credits(
+            session, user.id, CREDIT_COSTS["temporal_jump"], TransactionType.TEMPORAL,
+            reference_id=timepoint_id,
+            description=f"Temporal jump: {request.units} {request.unit}(s) backward",
+        )
 
     # Get source timepoint
     result = await session.execute(
