@@ -69,12 +69,14 @@ Override preset models for custom configurations:
 | Category | Endpoint | Description |
 |----------|----------|-------------|
 | **Auth** | `POST /api/v1/auth/apple` | Apple Sign-In → JWT pair |
+| **Auth** | `POST /api/v1/auth/dev/token` | Dev admin: create test user → JWT pair |
 | **Auth** | `POST /api/v1/auth/refresh` | Rotate refresh token |
 | **Auth** | `GET /api/v1/auth/me` | Current user profile |
 | **Auth** | `POST /api/v1/auth/logout` | Revoke refresh token |
 | **Auth** | `DELETE /api/v1/auth/account` | Soft-delete user account |
 | **Credits** | `GET /api/v1/credits/balance` | Current credit balance |
 | **Credits** | `GET /api/v1/credits/history` | Paginated transaction ledger |
+| **Credits** | `POST /api/v1/credits/admin/grant` | Dev admin: grant credits to any user |
 | **Credits** | `GET /api/v1/credits/costs` | Credit cost table |
 | **Users** | `GET /api/v1/users/me/timepoints` | User's timepoints (paginated) |
 | **Users** | `GET /api/v1/users/me/export` | Full GDPR data export |
@@ -561,6 +563,34 @@ List available models and presets for evaluation.
 
 Auth endpoints are always available but only functional when `AUTH_ENABLED=true`.
 
+### POST /api/v1/auth/dev/token (Admin)
+
+Create a test user (or find existing by email) and return a JWT pair. Requires `X-Admin-Key` header matching the `ADMIN_API_KEY` env var. Returns 403 if the key is missing, wrong, or `ADMIN_API_KEY` is not set.
+
+On first creation, the user gets signup credits (default 50).
+
+**Request:**
+```json
+{
+  "email": "test@example.com",
+  "display_name": "Test User"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| email | string | Yes | Email for the test user |
+| display_name | string | No | Optional display name |
+
+**Headers:**
+```
+X-Admin-Key: your-admin-key
+```
+
+**Response:** Same shape as `/auth/apple`.
+
+---
+
 ### POST /api/v1/auth/apple
 
 Verify an Apple identity token and return a JWT pair. Creates a new user on first sign-in and grants signup credits.
@@ -686,6 +716,40 @@ Paginated transaction ledger. Requires Bearer JWT.
     "created_at": "2026-02-09T12:00:00Z"
   }
 ]
+```
+
+---
+
+### POST /api/v1/credits/admin/grant (Admin)
+
+Grant credits to any user by user ID. Requires `X-Admin-Key` header matching the `ADMIN_API_KEY` env var. Returns 403 if the key is missing, wrong, or `ADMIN_API_KEY` is not set.
+
+**Request:**
+```json
+{
+  "user_id": "550e8400-...",
+  "amount": 100,
+  "description": "Manual top-up"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| user_id | string | Yes | Target user UUID |
+| amount | int | Yes | Credits to grant (must be > 0) |
+| description | string | No | Ledger note (default: "Manual top-up") |
+
+**Headers:**
+```
+X-Admin-Key: your-admin-key
+```
+
+**Response:**
+```json
+{
+  "balance": 150,
+  "granted": 100
+}
 ```
 
 ---

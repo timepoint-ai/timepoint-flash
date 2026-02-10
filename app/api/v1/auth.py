@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.apple import verify_apple_identity_token
 from app.auth.credits import grant_credits
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, require_admin_key
 from app.auth.jwt_handler import (
     create_access_token,
     create_refresh_token,
@@ -27,6 +27,7 @@ from app.auth.jwt_handler import (
 )
 from app.auth.schemas import (
     AppleSignInRequest,
+    DevTokenRequest,
     LogoutRequest,
     RefreshRequest,
     TokenResponse,
@@ -93,6 +94,72 @@ async def apple_sign_in(
         user.last_login_at = datetime.now(timezone.utc)
         if claims.email and claims.email_verified and not user.email:
             user.email = claims.email
+
+    # Issue tokens
+    access_token = create_access_token(user.id)
+    raw_refresh, _ = await create_refresh_token(session, user.id)
+
+    await session.commit()
+
+    settings = get_settings()
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=raw_refresh,
+        expires_in=settings.JWT_ACCESS_EXPIRE_MINUTES * 60,
+    )
+
+
+@router.post("/dev/token", response_model=TokenResponse)
+async def dev_token(
+    request: DevTokenRequest,
+    session: AsyncSession = Depends(get_db_session),
+    _admin: None = Depends(require_admin_key),
+) -> TokenResponse:
+    """Create a test user (or find existing by email) and return a JWT pair.
+
+    Requires X-Admin-Key header. Grants signup credits on first creation.
+    """
+    import hashlib
+
+    # Deterministic apple_sub from email so find-or-create is stable
+    email_hash = hashlib.sha256(request.email.encode()).hexdigest()[:16]
+    synthetic_sub = f"dev_{email_hash}"
+
+    result = await session.execute(
+        select(User).where(User.apple_sub == synthetic_sub)
+    )
+    user = result.scalar_one_or_none()
+    is_new_user = user is None
+
+    if user is None:
+        user = User(
+            apple_sub=synthetic_sub,
+            email=request.email,
+            display_name=request.display_name,
+            last_login_at=datetime.now(timezone.utc),
+        )
+        session.add(user)
+        await session.flush()
+
+        # Create credit account
+        account = CreditAccount(user_id=user.id, balance=0, lifetime_earned=0, lifetime_spent=0)
+        session.add(account)
+        await session.flush()
+
+        # Grant signup bonus
+        settings = get_settings()
+        await grant_credits(
+            session,
+            user.id,
+            settings.SIGNUP_CREDITS,
+            TransactionType.SIGNUP_BONUS,
+            description="Welcome bonus (dev)",
+        )
+        logger.info("Dev user created: %s (%s)", user.id, request.email)
+    else:
+        user.last_login_at = datetime.now(timezone.utc)
+        if request.display_name:
+            user.display_name = request.display_name
 
     # Issue tokens
     access_token = create_access_token(user.id)

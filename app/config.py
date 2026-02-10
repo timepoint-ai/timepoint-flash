@@ -389,6 +389,10 @@ class Settings(BaseSettings):
         default=50,
         description="Free credits granted on first sign-in",
     )
+    ADMIN_API_KEY: str = Field(
+        default="",
+        description="Secret key for admin endpoints (dev token, credit grants). Empty = disabled.",
+    )
 
     # Blob Storage
     BLOB_STORAGE_ENABLED: bool = Field(
