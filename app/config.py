@@ -364,6 +364,32 @@ class Settings(BaseSettings):
         le=5,
     )
 
+    # Auth & Credits
+    AUTH_ENABLED: bool = Field(
+        default=False,
+        description="Feature flag — false = open access, true = require JWT auth",
+    )
+    JWT_SECRET_KEY: str = Field(
+        default="change-me",
+        description="HS256 signing key for access tokens",
+    )
+    JWT_ACCESS_EXPIRE_MINUTES: int = Field(
+        default=15,
+        description="Access token lifetime in minutes",
+    )
+    JWT_REFRESH_EXPIRE_DAYS: int = Field(
+        default=30,
+        description="Refresh token lifetime in days",
+    )
+    APPLE_BUNDLE_ID: str = Field(
+        default="",
+        description="iOS app bundle ID for Apple Sign-In token validation",
+    )
+    SIGNUP_CREDITS: int = Field(
+        default=50,
+        description="Free credits granted on first sign-in",
+    )
+
     # Blob Storage
     BLOB_STORAGE_ENABLED: bool = Field(
         default=False,

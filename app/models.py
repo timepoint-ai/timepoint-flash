@@ -262,6 +262,11 @@ class Timepoint(Base):
     )
     api_source: Mapped[str | None] = mapped_column(String(50), default=None)
 
+    # Auth: owner
+    user_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id"), default=None
+    )
+
     # User attribution stub
     created_by: Mapped[str | None] = mapped_column(String(100), default=None)
 

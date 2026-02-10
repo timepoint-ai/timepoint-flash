@@ -143,6 +143,7 @@ async def init_db() -> None:
         >>> await init_db()
     """
     from app.models import Base
+    import app.models_auth  # noqa: F401 — register auth models with Base.metadata
 
     engine = get_engine()
 

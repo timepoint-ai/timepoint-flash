@@ -41,10 +41,13 @@ from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.credits import CREDIT_COSTS, spend_credits
+from app.auth.dependencies import get_current_user, require_credits
 from app.config import QualityPreset, get_settings
 from app.core.pipeline import GenerationPipeline, PipelineStep
 from app.database import get_db_session
 from app.models import GenerationLog, Timepoint, TimepointStatus
+from app.models_auth import TransactionType, User
 from app.schemas.characters import Character, CharacterData
 
 logger = logging.getLogger(__name__)
@@ -566,6 +569,8 @@ async def run_generation_task(
 async def generate_timepoint(
     request: GenerateRequest,
     background_tasks: BackgroundTasks,
+    user: User | None = Depends(get_current_user),
+    _credits=Depends(require_credits(CREDIT_COSTS["generate_balanced"])),
     session: AsyncSession = Depends(get_db_session),
 ) -> GenerateResponse:
     """Start timepoint generation.
@@ -586,11 +591,22 @@ async def generate_timepoint(
     """
     logger.info(f"Generate request: {request.query}")
 
+    # Spend credits if authenticated
+    if user is not None:
+        preset_key = f"generate_{request.preset or 'balanced'}"
+        cost = CREDIT_COSTS.get(preset_key, CREDIT_COSTS["generate_balanced"])
+        await spend_credits(
+            session, user.id, cost, TransactionType.GENERATION,
+            description=f"Generate ({request.preset or 'balanced'}): {request.query[:60]}",
+        )
+
     # Create pending timepoint
     timepoint = Timepoint.create(
         query=request.query,
         status=TimepointStatus.PROCESSING,
     )
+    if user is not None:
+        timepoint.user_id = user.id
 
     session.add(timepoint)
     await session.commit()
@@ -618,6 +634,8 @@ async def generate_timepoint(
 @router.post("/generate/sync", response_model=TimepointResponse)
 async def generate_timepoint_sync(
     request: GenerateRequest,
+    user: User | None = Depends(get_current_user),
+    _credits=Depends(require_credits(CREDIT_COSTS["generate_balanced"])),
     session: AsyncSession = Depends(get_db_session),
 ) -> TimepointResponse:
     """Generate timepoint synchronously.
@@ -638,6 +656,15 @@ async def generate_timepoint_sync(
     logger.info(f"Sync generate request: {request.query}")
 
     try:
+        # Spend credits if authenticated
+        if user is not None:
+            preset_key = f"generate_{request.preset or 'balanced'}"
+            cost = CREDIT_COSTS.get(preset_key, CREDIT_COSTS["generate_balanced"])
+            await spend_credits(
+                session, user.id, cost, TransactionType.GENERATION,
+                description=f"Generate ({request.preset or 'balanced'}): {request.query[:60]}",
+            )
+
         # Parse preset
         preset = None
         if request.preset:
@@ -656,6 +683,8 @@ async def generate_timepoint_sync(
 
         # Convert to timepoint
         timepoint = pipeline.state_to_timepoint(state)
+        if user is not None:
+            timepoint.user_id = user.id
 
         # Save to database
         session.add(timepoint)
@@ -919,6 +948,8 @@ async def list_timepoints(
 @router.post("/generate/stream")
 async def generate_timepoint_stream(
     request: GenerateRequest,
+    user: User | None = Depends(get_current_user),
+    _credits=Depends(require_credits(CREDIT_COSTS["generate_balanced"])),
 ) -> StreamingResponse:
     """Generate timepoint with SSE streaming progress.
 
