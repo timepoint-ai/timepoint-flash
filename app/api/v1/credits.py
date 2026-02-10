@@ -14,15 +14,17 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.credits import CREDIT_COSTS
-from app.auth.dependencies import get_current_user
+from app.auth.credits import CREDIT_COSTS, grant_credits
+from app.auth.dependencies import get_current_user, require_admin_key
 from app.auth.schemas import (
+    AdminGrantRequest,
+    AdminGrantResponse,
     CreditBalanceResponse,
     CreditCostsResponse,
     CreditTransactionResponse,
 )
 from app.database import get_db_session
-from app.models_auth import CreditAccount, CreditTransaction, User
+from app.models_auth import CreditAccount, CreditTransaction, TransactionType, User
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +98,39 @@ async def get_history(
         )
         for t in transactions
     ]
+
+
+@router.post("/admin/grant", response_model=AdminGrantResponse)
+async def admin_grant(
+    request: AdminGrantRequest,
+    session: AsyncSession = Depends(get_db_session),
+    _admin: None = Depends(require_admin_key),
+) -> AdminGrantResponse:
+    """Grant credits to any user by user ID. Requires X-Admin-Key header."""
+    # Verify user exists
+    result = await session.execute(
+        select(User).where(User.id == request.user_id)
+    )
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    await grant_credits(
+        session,
+        request.user_id,
+        request.amount,
+        TransactionType.ADMIN_GRANT,
+        description=request.description,
+    )
+    await session.commit()
+
+    # Fetch updated balance
+    acct_result = await session.execute(
+        select(CreditAccount).where(CreditAccount.user_id == request.user_id)
+    )
+    account = acct_result.scalar_one()
+
+    return AdminGrantResponse(balance=account.balance, granted=request.amount)
 
 
 @router.get("/costs", response_model=CreditCostsResponse)

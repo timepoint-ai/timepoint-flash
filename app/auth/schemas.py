@@ -71,3 +71,29 @@ class CreditCostsResponse(BaseModel):
     """Maps operation names to credit costs."""
 
     costs: dict[str, int]
+
+
+class DevTokenRequest(BaseModel):
+    """Request body for dev token creation."""
+
+    email: str = Field(..., description="Email for the test user")
+    display_name: str | None = Field(
+        default=None, description="Optional display name"
+    )
+
+
+class AdminGrantRequest(BaseModel):
+    """Request body for admin credit grant."""
+
+    user_id: str = Field(..., description="Target user UUID")
+    amount: int = Field(..., gt=0, description="Credits to grant")
+    description: str | None = Field(
+        default="Manual top-up", description="Ledger note"
+    )
+
+
+class AdminGrantResponse(BaseModel):
+    """Response for admin credit grant."""
+
+    balance: int
+    granted: int

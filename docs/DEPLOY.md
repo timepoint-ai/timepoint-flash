@@ -37,6 +37,7 @@ The repo includes `.replit`, `replit.nix`, and `start.sh` — Replit runs automa
    | `GOOGLE_API_KEY` | Yes | [aistudio.google.com](https://aistudio.google.com) (free) |
    | `OPENROUTER_API_KEY` | No | [openrouter.ai](https://openrouter.ai) (enables hyper/gemini3 presets) |
    | `JWT_SECRET_KEY` | Only if `AUTH_ENABLED=true` | Random 32+ char string (e.g. `openssl rand -hex 32`) |
+   | `ADMIN_API_KEY` | No | Secret key for dev admin endpoints (create test users, grant credits). Empty = disabled. |
 
 3. **Hit Run** — done. The server starts on port 8080 and Replit assigns a public URL.
 
@@ -102,6 +103,7 @@ AUTH_ENABLED=false            # default: false — existing deployments unaffect
 JWT_SECRET_KEY=your-random-secret-here   # required when AUTH_ENABLED=true
 APPLE_BUNDLE_ID=com.yourcompany.app      # required when AUTH_ENABLED=true
 SIGNUP_CREDITS=50
+ADMIN_API_KEY=                # secret key for dev admin endpoints — empty = disabled
 ```
 
 > **Note:** `AUTH_ENABLED=false` is the default. Existing deployments are unaffected — all endpoints remain open-access. Set `AUTH_ENABLED=true` only when deploying for the iOS app.
