@@ -41,8 +41,11 @@ from app.agents.character_chat import (
 )
 from app.agents.dialog_extension import DialogExtensionAgent, DialogExtensionInput
 from app.agents.survey import SurveyAgent, SurveyInput
+from app.auth.credits import CREDIT_COSTS, spend_credits
+from app.auth.dependencies import get_current_user, require_credits
 from app.database import get_db_session
 from app.models import Timepoint
+from app.models_auth import TransactionType, User
 from app.schemas import Character, CharacterData, DialogData, DialogLine
 from app.schemas.chat import (
     ChatMessage,
@@ -377,6 +380,8 @@ def get_existing_dialog(timepoint: Timepoint) -> list[DialogLine]:
 async def chat_with_character(
     timepoint_id: str,
     request: ChatAPIRequest,
+    user: User | None = Depends(get_current_user),
+    _credits=Depends(require_credits(CREDIT_COSTS["chat"])),
     db: AsyncSession = Depends(get_db_session),
 ) -> ChatAPIResponse:
     """Chat with a character from the timepoint.
@@ -401,6 +406,14 @@ async def chat_with_character(
         }
         ```
     """
+    # Spend credits if authenticated
+    if user is not None:
+        await spend_credits(
+            db, user.id, CREDIT_COSTS["chat"], TransactionType.CHAT,
+            reference_id=timepoint_id,
+            description=f"Chat with {request.character}",
+        )
+
     # Get timepoint and characters
     timepoint, char_data = await get_timepoint_with_characters(timepoint_id, db)
     character = get_character_by_name(char_data, request.character)
