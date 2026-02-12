@@ -33,7 +33,7 @@ def upgrade() -> None:
             server_default=sa.func.now(),
         ),
         sa.Column("last_login_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("1")),
+        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("true")),
     )
     op.create_index("ix_users_apple_sub", "users", ["apple_sub"], unique=True)
 

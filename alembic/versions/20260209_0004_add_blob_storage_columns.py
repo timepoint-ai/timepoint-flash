@@ -25,11 +25,11 @@ def upgrade() -> None:
     op.add_column("timepoints", sa.Column("blob_written_at", sa.DateTime(timezone=True), nullable=True))
 
     # Soft delete
-    op.add_column("timepoints", sa.Column("is_deleted", sa.Boolean(), nullable=False, server_default=sa.text("0")))
+    op.add_column("timepoints", sa.Column("is_deleted", sa.Boolean(), nullable=False, server_default=sa.text("false")))
     op.add_column("timepoints", sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True))
 
     # NSFW stub
-    op.add_column("timepoints", sa.Column("nsfw_flag", sa.Boolean(), nullable=False, server_default=sa.text("0")))
+    op.add_column("timepoints", sa.Column("nsfw_flag", sa.Boolean(), nullable=False, server_default=sa.text("false")))
 
     # Refresh tracking
     op.add_column("timepoints", sa.Column("generation_version", sa.Integer(), nullable=False, server_default=sa.text("1")))
