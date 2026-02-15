@@ -30,7 +30,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.agents.base import AgentResult, BaseAgent
 from app.core.llm_router import LLMRouter
@@ -79,6 +79,22 @@ class CritiqueIssue(BaseModel):
     location: str = Field(
         description="Where in the output the issue occurs (e.g., character name, dialog line)"
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_field_names(cls, data: dict) -> dict:
+        """Accept alternative field names that LLMs commonly return."""
+        if isinstance(data, dict):
+            # error_type -> category
+            if "category" not in data and "error_type" in data:
+                data["category"] = data.pop("error_type")
+            # specific_error / specific_issue -> description
+            if "description" not in data:
+                for alt in ("specific_error", "specific_issue", "issue"):
+                    if alt in data:
+                        data["description"] = data.pop(alt)
+                        break
+        return data
 
 
 class CritiqueOutput(BaseModel):
