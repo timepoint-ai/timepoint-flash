@@ -32,8 +32,6 @@ def derive_model_provider(model_id: str | None) -> str:
         return "google"
     if any(lower.startswith(p) for p in OPENROUTER_PREFIXES):
         return "openrouter"
-    if "pollinations" in lower:
-        return "pollinations"
     return "google"
 
 
@@ -49,6 +47,4 @@ def derive_model_permissiveness(model_id: str | None) -> str:
     lower = model_id.lower()
     if any(lower.startswith(p) for p in PERMISSIVE_PREFIXES):
         return "permissive"
-    if "pollinations" in lower:
-        return "permissive"  # Pollinations uses open models
     return "restricted"
