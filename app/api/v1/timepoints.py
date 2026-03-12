@@ -173,8 +173,12 @@ class GenerateRequest(BaseModel):
     )
     image_model: str | None = Field(
         default=None,
-        description="Custom image model override (e.g., 'google/imagen-3'). Overrides preset.",
-        examples=["google/imagen-3", "black-forest-labs/flux-1.1-pro"],
+        description=(
+            "Image model ID. OpenRouter format ('org/model') or Google native "
+            "(gemini-2.5-flash-image, gemini-3-pro-image-preview)."
+        ),
+        examples=["gemini-2.5-flash-image", "gemini-3-pro-image-preview",
+                   "google/gemini-2.5-flash-image-preview"],
     )
     write_blob: bool = Field(
         default=False,
@@ -210,12 +214,10 @@ class GenerateRequest(BaseModel):
     )
 
 
-# Default permissive models — used when model_policy="permissive" and no
-# explicit text_model/image_model is provided.  These must be open-weight
-# models available on OpenRouter (or Pollinations for images).
+# Default permissive text model — used when model_policy="permissive" and no
+# explicit text_model is provided.  Must be an open-weight model on OpenRouter.
+# Image model is resolved at runtime via get_image_fallback_model().
 _DEFAULT_PERMISSIVE_TEXT_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
-_DEFAULT_PERMISSIVE_IMAGE_MODEL = "pollinations"  # Free, open, always available
-
 
 def _get_permissive_text_model() -> str:
     """Pick the best available permissive text model from the registry."""
@@ -267,7 +269,9 @@ def resolve_model_policy(
             text_model = _get_permissive_text_model()
             logger.info("model_policy=permissive → text_model=%s", text_model)
         if not image_model:
-            image_model = _DEFAULT_PERMISSIVE_IMAGE_MODEL
+            # Use the best available OpenRouter image model (no Pollinations)
+            from app.core.llm_router import get_image_fallback_model
+            image_model = get_image_fallback_model()
             logger.info("model_policy=permissive → image_model=%s", image_model)
 
     return text_model, image_model
