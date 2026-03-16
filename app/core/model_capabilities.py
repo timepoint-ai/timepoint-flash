@@ -571,6 +571,29 @@ TEXT_MODEL_REGISTRY: dict[str, TextModelConfig] = {
         max_output_tokens=8192,
         notes="Hermes 4 70B, strong reasoning",
     ),
+    # OpenRouter free distillable models
+    "openrouter/hunter-alpha": TextModelConfig(
+        model_id="openrouter/hunter-alpha",
+        provider="openrouter",
+        supports_json_schema=False,
+        supports_json_mode=True,
+        supports_function_calling=True,
+        supports_streaming=True,
+        supports_extended_thinking=False,
+        max_output_tokens=32000,
+        notes="Free distillable, 1M context, text+image input",
+    ),
+    "openrouter/healer-alpha": TextModelConfig(
+        model_id="openrouter/healer-alpha",
+        provider="openrouter",
+        supports_json_schema=False,
+        supports_json_mode=True,
+        supports_function_calling=True,
+        supports_streaming=True,
+        supports_extended_thinking=False,
+        max_output_tokens=32000,
+        notes="Free distillable, 262K context, multimodal input",
+    ),
 }
 
 # Default config for unknown models (conservative - assume JSON mode works)

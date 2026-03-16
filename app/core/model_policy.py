@@ -16,13 +16,14 @@ PERMISSIVE_PREFIXES = (
     "nvidia/",              # Nemotron family
     "nousresearch/",        # Hermes family (open-weight)
     "black-forest-labs/",   # FLUX open-weight image models
+    "openrouter/",          # OpenRouter free distillable models (Hunter, Healer)
 )
 
 # Google-native model prefixes (always restricted)
 GOOGLE_MODEL_PREFIXES = ("gemini", "imagen", "flux-schnell")
 
 # Prefixes routed through OpenRouter (may be restricted or permissive)
-OPENROUTER_PREFIXES = ("meta-llama/", "anthropic/", "mistralai/", "openai/", "deepseek/", "qwen/", "microsoft/", "nvidia/", "nousresearch/", "black-forest-labs/")
+OPENROUTER_PREFIXES = ("meta-llama/", "anthropic/", "mistralai/", "openai/", "deepseek/", "qwen/", "microsoft/", "nvidia/", "nousresearch/", "black-forest-labs/", "openrouter/")
 
 
 def derive_model_provider(model_id: str | None) -> str:
