@@ -2,6 +2,7 @@
 
 Endpoints:
     POST   /api/v1/auth/apple   — Verify Apple token, find-or-create user, return JWTs
+    POST   /api/v1/auth/service-token — Mint JWT for user (requires X-Service-Key)
     POST   /api/v1/auth/demo    — Demo sign-in for App Store review (no auth)
     POST   /api/v1/auth/refresh  — Rotate refresh token, return new JWT pair
     GET    /api/v1/auth/me       — Return current user profile
@@ -21,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.apple import verify_apple_identity_token
 from app.auth.credits import grant_credits
-from app.auth.dependencies import get_current_user, require_admin_key
+from app.auth.dependencies import get_current_user, require_admin_key, require_service_key
 from app.auth.jwt_handler import (
     create_access_token,
     create_refresh_token,
@@ -32,6 +33,7 @@ from app.auth.schemas import (
     DevTokenRequest,
     LogoutRequest,
     RefreshRequest,
+    ServiceTokenRequest,
     TokenResponse,
     UserResponse,
 )
@@ -163,6 +165,50 @@ async def dev_token(
         user.last_login_at = datetime.now(timezone.utc)
         if request.display_name:
             user.display_name = request.display_name
+
+    # Issue tokens
+    access_token = create_access_token(user.id)
+    raw_refresh, _ = await create_refresh_token(session, user.id)
+
+    await session.commit()
+
+    settings = get_settings()
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=raw_refresh,
+        expires_in=settings.JWT_ACCESS_EXPIRE_MINUTES * 60,
+    )
+
+
+@router.post("/service-token", response_model=TokenResponse)
+async def service_token(
+    request: ServiceTokenRequest,
+    _key: None = Depends(require_service_key),
+    session: AsyncSession = Depends(get_db_session),
+) -> TokenResponse:
+    """Mint a JWT pair for an existing user, on behalf of a trusted service.
+
+    Called by billing / Pro Cloud after they have already authenticated the
+    user through their own auth flow.  Requires a valid X-Service-Key header.
+    """
+    # Verify the user exists and is active
+    result = await session.execute(
+        select(User).where(User.id == request.user_id)
+    )
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        # Also try external_id for Pro Cloud users
+        result = await session.execute(
+            select(User).where(User.external_id == request.user_id)
+        )
+        user = result.scalar_one_or_none()
+
+    if user is None or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {request.user_id} not found or inactive",
+        )
 
     # Issue tokens
     access_token = create_access_token(user.id)

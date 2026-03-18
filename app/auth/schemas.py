@@ -82,6 +82,12 @@ class DevTokenRequest(BaseModel):
     )
 
 
+class ServiceTokenRequest(BaseModel):
+    """Request body for service-to-service token minting."""
+
+    user_id: str = Field(..., description="Flash user UUID to mint a token for")
+
+
 class AdminGrantRequest(BaseModel):
     """Request body for admin credit grant."""
 
