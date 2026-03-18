@@ -96,6 +96,25 @@ async def get_current_user(
     return user
 
 
+async def require_service_key(request: Request) -> None:
+    """Verify the X-Service-Key header matches FLASH_SERVICE_KEY.
+
+    Returns 503 if the key is not configured, 403 if the key doesn't match.
+    Used to gate internal service-to-service endpoints (billing, Pro Cloud).
+    """
+    settings = get_settings()
+    if not settings.FLASH_SERVICE_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="FLASH_SERVICE_KEY not configured",
+        )
+    if request.headers.get("X-Service-Key", "") != settings.FLASH_SERVICE_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid service key",
+        )
+
+
 async def require_admin_key(request: Request) -> None:
     """Verify the X-Admin-Key header matches ADMIN_API_KEY.
 
