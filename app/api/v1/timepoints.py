@@ -870,8 +870,53 @@ async def run_generation_task(
             })
 
 
+def _validate_callback_url(url: str) -> str:
+    """Validate callback URL to prevent SSRF.
+
+    Only allows https:// URLs pointing to public (non-private/reserved) IPs.
+
+    Returns:
+        The validated URL string.
+
+    Raises:
+        ValueError: If the URL scheme is not https or the host resolves to a private IP.
+    """
+    import ipaddress
+    import socket
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        raise ValueError(f"callback_url must use https scheme, got {parsed.scheme!r}")
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValueError("callback_url has no hostname")
+
+    # Resolve hostname and block private/reserved IPs
+    try:
+        addr_infos = socket.getaddrinfo(hostname, None)
+    except socket.gaierror as exc:
+        raise ValueError(f"Cannot resolve callback host {hostname!r}: {exc}") from exc
+
+    for _family, _type, _proto, _canonname, sockaddr in addr_infos:
+        ip = ipaddress.ip_address(sockaddr[0])
+        if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
+            raise ValueError(
+                f"callback_url host {hostname!r} resolves to private/reserved IP {ip}"
+            )
+
+    return url
+
+
 async def _fire_callback(url: str, payload: dict[str, Any]) -> None:
     """POST results to a callback URL. Best-effort, never raises."""
+    try:
+        url = _validate_callback_url(url)
+    except ValueError as e:
+        logger.warning(f"Callback URL rejected (SSRF protection): {e}")
+        return
+
     try:
         import httpx
         async with httpx.AsyncClient(timeout=10) as client:
@@ -1476,9 +1521,10 @@ async def update_visibility(
 async def delete_timepoint(
     timepoint_id: str,
     permanent: bool = Query(False, description="Permanently delete (skip soft-delete)"),
+    user: User | None = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> DeleteResponse:
-    """Delete a timepoint by ID.
+    """Delete a timepoint by ID (owner-only).
 
     By default, performs a soft-delete (sets is_deleted=True and moves blob to .trash).
     Pass permanent=true to hard-delete the record and all associated data.
@@ -1486,13 +1532,14 @@ async def delete_timepoint(
     Args:
         timepoint_id: Timepoint UUID
         permanent: If true, permanently delete instead of soft-delete
+        user: Authenticated user (or None when AUTH_ENABLED=false)
         session: Database session
 
     Returns:
         DeleteResponse confirming deletion
 
     Raises:
-        HTTPException: If timepoint not found
+        HTTPException: 403 not owner, 404 not found
     """
     # Check if exists
     result = await session.execute(
@@ -1502,6 +1549,11 @@ async def delete_timepoint(
 
     if not timepoint:
         raise HTTPException(status_code=404, detail="Timepoint not found")
+
+    # Owner check (skip when AUTH_ENABLED=false, i.e. user is None)
+    if user is not None:
+        if timepoint.user_id is None or timepoint.user_id != user.id:
+            raise HTTPException(status_code=403, detail="Only the owner can delete this timepoint")
 
     if permanent:
         # Hard delete: move blob to trash then delete DB records
