@@ -40,6 +40,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, literal, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import defer
 
 from app.auth.credits import CREDIT_COSTS, grant_credits, spend_credits
 from app.auth.dependencies import get_current_user, require_credits
@@ -534,7 +535,7 @@ def timepoint_to_response(
         time_of_day=tp.time_of_day,
         era=tp.era,
         location=tp.location,
-        image_prompt=tp.tdf.get("image_prompt"),
+        image_prompt=tp.tdf.get("image_prompt") if include_full else None,
         has_image=tp.has_image,  # Always include whether image exists
         image_url=tp.image_url,
         image_base64=tp.image_base64 if include_image else None,
@@ -1389,8 +1390,14 @@ async def list_timepoints(
     Returns:
         TimepointListResponse with paginated items
     """
-    # Build query — exclude soft-deleted by default
-    query = select(Timepoint).where(Timepoint.is_deleted == False).order_by(Timepoint.created_at.desc())  # noqa: E712
+    # Build query — exclude soft-deleted by default.
+    # Defer tdf_payload to avoid loading 1MB+ JSON blobs per item in list view.
+    query = (
+        select(Timepoint)
+        .options(defer(Timepoint.tdf_payload))
+        .where(Timepoint.is_deleted == False)  # noqa: E712
+        .order_by(Timepoint.created_at.desc())
+    )
 
     if status:
         try:
