@@ -301,9 +301,13 @@ def mock_httpx_client():
 # ============================================================================
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="session")
 async def test_client():
-    """Get async test client for FastAPI app."""
+    """Get async test client for FastAPI app.
+
+    Session-scoped to share the app's DB connection pool across all tests,
+    avoiding event loop conflicts with asyncpg.
+    """
     from httpx import ASGITransport, AsyncClient
 
     from app.main import app
