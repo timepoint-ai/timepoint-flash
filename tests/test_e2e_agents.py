@@ -11,16 +11,13 @@ Run with: pytest tests/test_e2e_agents.py -v
 """
 
 import pytest
-from sqlalchemy.orm import Session
 
 from tests.utils.test_helpers import generate_unique_test_email
 
 
 @pytest.mark.e2e
 @pytest.mark.asyncio
-async def test_judge_agent_accepts_valid_query(
-    test_client, db_session: Session, openrouter_api_key: str
-):
+async def test_judge_agent_accepts_valid_query(test_client):
     """Test that judge agent accepts valid historical queries."""
     email = generate_unique_test_email("test-judge-valid")
 
@@ -39,9 +36,7 @@ async def test_judge_agent_accepts_valid_query(
 
 @pytest.mark.e2e
 @pytest.mark.asyncio
-async def test_judge_agent_rejects_far_future(
-    test_client, db_session: Session, openrouter_api_key: str
-):
+async def test_judge_agent_rejects_far_future(test_client):
     """Test that judge agent rejects far-future dates."""
     email = generate_unique_test_email("test-judge-future")
 
@@ -60,9 +55,7 @@ async def test_judge_agent_rejects_far_future(
 
 @pytest.mark.e2e
 @pytest.mark.asyncio
-async def test_judge_agent_rejects_fictional(
-    test_client, db_session: Session, openrouter_api_key: str
-):
+async def test_judge_agent_rejects_fictional(test_client):
     """Test that judge agent rejects obvious fictional queries."""
     email = generate_unique_test_email("test-judge-fictional")
 
@@ -84,9 +77,7 @@ async def test_judge_agent_rejects_fictional(
 @pytest.mark.e2e
 @pytest.mark.asyncio
 @pytest.mark.slow
-async def test_timeline_agent_extracts_correct_year(
-    test_client, db_session: Session, openrouter_api_key: str
-):
+async def test_timeline_agent_extracts_correct_year(test_client):
     """Test that timeline agent extracts year correctly."""
     from tests.utils.test_helpers import wait_for_completion
 
@@ -131,9 +122,7 @@ async def test_timeline_agent_extracts_correct_year(
 @pytest.mark.e2e
 @pytest.mark.asyncio
 @pytest.mark.slow
-async def test_character_agent_generates_appropriate_count(
-    test_client, db_session: Session, openrouter_api_key: str
-):
+async def test_character_agent_generates_appropriate_count(test_client):
     """Test that character agent generates 1-12 characters."""
     from tests.utils.test_helpers import wait_for_completion
 
@@ -188,9 +177,7 @@ async def test_character_agent_generates_appropriate_count(
 @pytest.mark.e2e
 @pytest.mark.asyncio
 @pytest.mark.slow
-async def test_dialog_agent_uses_period_language(
-    test_client, db_session: Session, openrouter_api_key: str
-):
+async def test_dialog_agent_uses_period_language(test_client):
     """Test that dialog agent generates period-appropriate language."""
     from tests.utils.test_helpers import wait_for_completion
 
@@ -258,7 +245,7 @@ async def test_dialog_agent_uses_period_language(
 
 @pytest.mark.e2e
 @pytest.mark.asyncio
-async def test_minimal_query_handling(test_client, db_session: Session, openrouter_api_key: str):
+async def test_minimal_query_handling(test_client):
     """Test handling of minimal/sparse queries."""
     email = generate_unique_test_email("test-minimal")
 
@@ -274,7 +261,7 @@ async def test_minimal_query_handling(test_client, db_session: Session, openrout
 
 @pytest.mark.e2e
 @pytest.mark.asyncio
-async def test_complex_query_handling(test_client, db_session: Session, openrouter_api_key: str):
+async def test_complex_query_handling(test_client):
     """Test handling of complex queries with many details."""
     email = generate_unique_test_email("test-complex")
 
