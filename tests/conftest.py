@@ -438,7 +438,7 @@ async def real_openrouter_provider(real_settings):
     await provider.close()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def e2e_test_db():
     """Set up e2e test database environment.
 
