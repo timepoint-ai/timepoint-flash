@@ -439,18 +439,20 @@ async def e2e_test_db():
     """Create e2e test database with cleanup.
 
     Similar to test_db but specifically for e2e tests.
-    Uses a separate database file to avoid conflicts.
+    Uses DATABASE_URL from environment if set (e.g. CI uses PostgreSQL),
+    otherwise falls back to a separate SQLite database file.
     """
     from app.database import close_db, drop_db, init_db
 
-    # Use a separate e2e test database
-    os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./e2e_test_timepoint.db"
+    using_sqlite = False
+    if "DATABASE_URL" not in os.environ or not os.environ["DATABASE_URL"]:
+        os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./e2e_test_timepoint.db"
+        using_sqlite = True
 
     await init_db()
     yield
     await drop_db()
     await close_db()
 
-    # Clean up the database file
-    if os.path.exists("./e2e_test_timepoint.db"):
+    if using_sqlite and os.path.exists("./e2e_test_timepoint.db"):
         os.remove("./e2e_test_timepoint.db")

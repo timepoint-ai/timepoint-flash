@@ -11,7 +11,6 @@ Run with: pytest tests/test_e2e_agents.py -v
 """
 
 import pytest
-from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from tests.utils.test_helpers import generate_unique_test_email
@@ -20,12 +19,12 @@ from tests.utils.test_helpers import generate_unique_test_email
 @pytest.mark.e2e
 @pytest.mark.asyncio
 async def test_judge_agent_accepts_valid_query(
-    client: TestClient, db_session: Session, openrouter_api_key: str
+    test_client, db_session: Session, openrouter_api_key: str
 ):
     """Test that judge agent accepts valid historical queries."""
     email = generate_unique_test_email("test-judge-valid")
 
-    response = client.post(
+    response = await test_client.post(
         "/api/timepoint/create",
         json={
             "input_query": "Ancient Rome, Caesar crossing the Rubicon, 49 BCE",
@@ -41,12 +40,12 @@ async def test_judge_agent_accepts_valid_query(
 @pytest.mark.e2e
 @pytest.mark.asyncio
 async def test_judge_agent_rejects_far_future(
-    client: TestClient, db_session: Session, openrouter_api_key: str
+    test_client, db_session: Session, openrouter_api_key: str
 ):
     """Test that judge agent rejects far-future dates."""
     email = generate_unique_test_email("test-judge-future")
 
-    response = client.post(
+    response = await test_client.post(
         "/api/timepoint/create",
         json={"input_query": "Colonization of Mars, year 2150", "requester_email": email},
     )
@@ -62,12 +61,12 @@ async def test_judge_agent_rejects_far_future(
 @pytest.mark.e2e
 @pytest.mark.asyncio
 async def test_judge_agent_rejects_fictional(
-    client: TestClient, db_session: Session, openrouter_api_key: str
+    test_client, db_session: Session, openrouter_api_key: str
 ):
     """Test that judge agent rejects obvious fictional queries."""
     email = generate_unique_test_email("test-judge-fictional")
 
-    response = client.post(
+    response = await test_client.post(
         "/api/timepoint/create",
         json={
             "input_query": "Hogwarts School of Witchcraft and Wizardry, 1995",
@@ -86,7 +85,7 @@ async def test_judge_agent_rejects_fictional(
 @pytest.mark.asyncio
 @pytest.mark.slow
 async def test_timeline_agent_extracts_correct_year(
-    client: TestClient, db_session: Session, openrouter_api_key: str
+    test_client, db_session: Session, openrouter_api_key: str
 ):
     """Test that timeline agent extracts year correctly."""
     from tests.utils.test_helpers import wait_for_completion
@@ -94,7 +93,7 @@ async def test_timeline_agent_extracts_correct_year(
     email = generate_unique_test_email("test-timeline")
     query = "Declaration of Independence signing, Philadelphia, July 4 1776"
 
-    response = client.post(
+    response = await test_client.post(
         "/api/timepoint/create", json={"input_query": query, "requester_email": email}
     )
 
@@ -104,7 +103,7 @@ async def test_timeline_agent_extracts_correct_year(
     # Wait for completion
     async def check_completion():
         if slug:
-            detail_response = client.get(f"/api/timepoint/details/{slug}")
+            detail_response = await test_client.get(f"/api/timepoint/details/{slug}")
             if detail_response.status_code == 200:
                 data = detail_response.json()
                 if data.get("year"):
@@ -133,7 +132,7 @@ async def test_timeline_agent_extracts_correct_year(
 @pytest.mark.asyncio
 @pytest.mark.slow
 async def test_character_agent_generates_appropriate_count(
-    client: TestClient, db_session: Session, openrouter_api_key: str
+    test_client, db_session: Session, openrouter_api_key: str
 ):
     """Test that character agent generates 1-12 characters."""
     from tests.utils.test_helpers import wait_for_completion
@@ -141,7 +140,7 @@ async def test_character_agent_generates_appropriate_count(
     email = generate_unique_test_email("test-characters")
     query = "Viking raid on English monastery, 793 CE"
 
-    response = client.post(
+    response = await test_client.post(
         "/api/timepoint/create", json={"input_query": query, "requester_email": email}
     )
 
@@ -151,7 +150,7 @@ async def test_character_agent_generates_appropriate_count(
     # Wait for completion
     async def check_completion():
         if slug:
-            detail_response = client.get(f"/api/timepoint/details/{slug}")
+            detail_response = await test_client.get(f"/api/timepoint/details/{slug}")
             if detail_response.status_code == 200:
                 data = detail_response.json()
                 chars = data.get("character_data") or data.get("character_data_json", [])
@@ -190,7 +189,7 @@ async def test_character_agent_generates_appropriate_count(
 @pytest.mark.asyncio
 @pytest.mark.slow
 async def test_dialog_agent_uses_period_language(
-    client: TestClient, db_session: Session, openrouter_api_key: str
+    test_client, db_session: Session, openrouter_api_key: str
 ):
     """Test that dialog agent generates period-appropriate language."""
     from tests.utils.test_helpers import wait_for_completion
@@ -198,7 +197,7 @@ async def test_dialog_agent_uses_period_language(
     email = generate_unique_test_email("test-dialog")
     query = "Shakespeare's Globe Theatre performance, London 1599"
 
-    response = client.post(
+    response = await test_client.post(
         "/api/timepoint/create", json={"input_query": query, "requester_email": email}
     )
 
@@ -208,7 +207,7 @@ async def test_dialog_agent_uses_period_language(
     # Wait for completion
     async def check_completion():
         if slug:
-            detail_response = client.get(f"/api/timepoint/details/{slug}")
+            detail_response = await test_client.get(f"/api/timepoint/details/{slug}")
             if detail_response.status_code == 200:
                 data = detail_response.json()
                 dialog = data.get("dialog") or data.get("dialog_json", [])
@@ -260,13 +259,13 @@ async def test_dialog_agent_uses_period_language(
 @pytest.mark.e2e
 @pytest.mark.asyncio
 async def test_minimal_query_handling(
-    client: TestClient, db_session: Session, openrouter_api_key: str
+    test_client, db_session: Session, openrouter_api_key: str
 ):
     """Test handling of minimal/sparse queries."""
     email = generate_unique_test_email("test-minimal")
 
     # Minimal query with just location and year
-    response = client.post(
+    response = await test_client.post(
         "/api/timepoint/create", json={"input_query": "Rome 100 CE", "requester_email": email}
     )
 
@@ -278,13 +277,13 @@ async def test_minimal_query_handling(
 @pytest.mark.e2e
 @pytest.mark.asyncio
 async def test_complex_query_handling(
-    client: TestClient, db_session: Session, openrouter_api_key: str
+    test_client, db_session: Session, openrouter_api_key: str
 ):
     """Test handling of complex queries with many details."""
     email = generate_unique_test_email("test-complex")
 
     # Very detailed query
-    response = client.post(
+    response = await test_client.post(
         "/api/timepoint/create",
         json={
             "input_query": (
