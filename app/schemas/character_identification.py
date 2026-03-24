@@ -65,6 +65,10 @@ class CharacterStub(BaseModel):
         default_factory=list,
         description="Names of other characters they interact with",
     )
+    entity_id: str | None = Field(
+        default=None,
+        description="Clockchain figure ID for entity persistence",
+    )
     social_register: str | None = Field(
         default=None,
         description="Social register: elite/educated/common/servant/child",

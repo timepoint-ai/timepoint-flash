@@ -100,6 +100,12 @@ class Character(BaseModel):
         description="Historical context for known figures",
     )
 
+    # Entity persistence
+    entity_id: str | None = Field(
+        default=None,
+        description="Clockchain figure ID for entity persistence",
+    )
+
     # Dialog and personality (for roleplay-informed dialog generation)
     personality: str | None = Field(
         default=None,
