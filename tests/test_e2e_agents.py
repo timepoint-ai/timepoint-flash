@@ -22,7 +22,7 @@ GET_BY_SLUG_ENDPOINT = "/api/v1/timepoints/slug/{slug}"
 
 
 @pytest.mark.e2e
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_judge_agent_accepts_valid_query(test_client, e2e_test_db):
     """Test that judge agent accepts valid historical queries."""
     response = await test_client.post(
@@ -38,7 +38,7 @@ async def test_judge_agent_accepts_valid_query(test_client, e2e_test_db):
 
 
 @pytest.mark.e2e
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_judge_agent_rejects_far_future(test_client, e2e_test_db):
     """Test that judge agent rejects far-future dates."""
     response = await test_client.post(
@@ -55,7 +55,7 @@ async def test_judge_agent_rejects_far_future(test_client, e2e_test_db):
 
 
 @pytest.mark.e2e
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_judge_agent_rejects_fictional(test_client, e2e_test_db):
     """Test that judge agent rejects obvious fictional queries."""
     response = await test_client.post(
@@ -241,7 +241,7 @@ async def test_dialog_agent_uses_period_language(test_client, e2e_test_db):
 
 
 @pytest.mark.e2e
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_minimal_query_handling(test_client, e2e_test_db):
     """Test handling of minimal/sparse queries."""
     # Minimal query with just location and year
@@ -258,7 +258,7 @@ async def test_minimal_query_handling(test_client, e2e_test_db):
 
 
 @pytest.mark.e2e
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_complex_query_handling(test_client, e2e_test_db):
     """Test handling of complex queries with many details."""
     response = await test_client.post(

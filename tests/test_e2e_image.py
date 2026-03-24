@@ -26,7 +26,7 @@ GET_BY_ID_ENDPOINT = "/api/v1/timepoints/{id}"
 
 @pytest.mark.e2e
 @pytest.mark.slow
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_image_generation_creates_valid_png(test_client, e2e_test_db):
     """Test that image generation produces a valid PNG image."""
     query = "Japanese tea ceremony, Kyoto 1600"
@@ -77,7 +77,7 @@ async def test_image_generation_creates_valid_png(test_client, e2e_test_db):
 
 @pytest.mark.e2e
 @pytest.mark.slow
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_image_has_reasonable_dimensions(test_client, e2e_test_db):
     """Test that generated images have reasonable dimensions."""
     import base64
@@ -149,7 +149,7 @@ async def test_image_has_reasonable_dimensions(test_client, e2e_test_db):
 
 @pytest.mark.e2e
 @pytest.mark.slow
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_image_generation_with_query(test_client, e2e_test_db):
     """Test that image generation can be triggered via generate_image flag."""
     query = "Medieval knights tournament, France 1350"
