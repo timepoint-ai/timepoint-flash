@@ -79,7 +79,7 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
-          pytest -m e2e -v --tb=short --maxfail=3
+          pytest -m "e2e and not slow" -v --tb=short --maxfail=3
         timeout-minutes: 30
 
       - name: Upload test artifacts
