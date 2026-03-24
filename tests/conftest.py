@@ -302,13 +302,38 @@ def mock_httpx_client():
 
 
 @pytest_asyncio.fixture(scope="session")
-async def test_client():
+async def test_client(e2e_test_db):
     """Get async test client for FastAPI app.
 
     Session-scoped to share the app's DB connection pool across all tests,
     avoiding event loop conflicts with asyncpg.
+
+    Explicitly initializes the database BEFORE creating the ASGI transport
+    so that the asyncpg connection pool is bound to the test event loop.
+    The app lifespan's init_db() becomes a no-op because the engine already
+    exists (get_engine() is lazy and checks _engine is not None).
     """
     from httpx import ASGITransport, AsyncClient
+
+    from app.config import get_settings
+    from app.database import close_db, init_db
+
+    # Clear the cached settings so they pick up the current DATABASE_URL
+    # (CI sets it to postgresql:// before pytest starts).
+    get_settings.cache_clear()
+
+    # Reset database module globals to ensure a fresh engine is created
+    # on THIS event loop, not one from a previous import.
+    import app.database as _db_mod
+
+    if _db_mod._engine is not None:
+        await _db_mod._engine.dispose()
+        _db_mod._engine = None
+        _db_mod._async_session_factory = None
+
+    # Initialize DB (create tables) on the test event loop.
+    # This creates the asyncpg engine+pool bound to the current loop.
+    await init_db()
 
     from app.main import app
 
@@ -317,6 +342,9 @@ async def test_client():
         base_url="http://test",
     ) as client:
         yield client
+
+    # Teardown: close the DB connections created on this loop.
+    await close_db()
 
 
 # ============================================================================
@@ -443,13 +471,22 @@ def e2e_test_db():
     """Set up e2e test database environment.
 
     Sets DATABASE_URL if not already configured (CI sets it to PostgreSQL).
-    The actual DB initialization happens via the app lifespan in test_client.
-    This fixture only ensures the env var is set before the app starts.
+    Clears the settings cache so the Settings validator can convert
+    postgresql:// to postgresql+asyncpg:// for SQLAlchemy async.
+
+    The actual DB initialization (init_db) is done by test_client,
+    which runs on the test event loop to avoid asyncpg loop conflicts.
     """
+    from app.config import get_settings
+
     using_sqlite = False
     if "DATABASE_URL" not in os.environ or not os.environ["DATABASE_URL"]:
         os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./e2e_test_timepoint.db"
         using_sqlite = True
+
+    # Clear settings cache so it picks up the (possibly CI-provided) DATABASE_URL
+    # and the field validator converts postgresql:// → postgresql+asyncpg://.
+    get_settings.cache_clear()
 
     yield
 
