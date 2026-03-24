@@ -494,6 +494,16 @@ class Settings(BaseSettings):
         description="Set automatically when timepoint-billing is installed",
     )
 
+    # Entity Resolution
+    ENTITY_RESOLUTION_ENABLED: bool = Field(
+        default=False,
+        description="Feature flag for entity resolution against Clockchain figures",
+    )
+    CLOCKCHAIN_ENTITY_URL: str = Field(
+        default="",
+        description="URL for entity resolution API. Defaults to CLOCKCHAIN_URL if empty.",
+    )
+
     # CORS
     CORS_ENABLED: bool = Field(
         default=True,
