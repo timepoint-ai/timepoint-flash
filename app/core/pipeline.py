@@ -52,6 +52,7 @@ from app.agents.characters import CharactersInput
 from app.agents.critique import CritiqueAgent, CritiqueInput
 from app.agents.dialog import DialogInput
 from app.agents.graph import GraphInput
+from app.agents.entity_grounding import EntityGroundingAgent
 from app.agents.grounding import (
     GroundedContext,
     GroundingAgent,
@@ -105,6 +106,7 @@ class PipelineStep(str, Enum):
 
     JUDGE = "judge"
     GROUNDING = "grounding"  # After judge, verifies historical facts
+    ENTITY_GROUNDING = "entity_grounding"  # After grounding, enriches entities via web search
     TIMELINE = "timeline"
     SCENE = "scene"
     CHARACTERS = "characters"
@@ -162,6 +164,7 @@ class PipelineState:
     query: str
     judge_result: JudgeResult | None = None
     grounded_context: GroundedContext | None = None  # Verified historical facts
+    entity_grounding_profiles: dict | None = None  # Entity grounding via web search
     timeline_data: TimelineData | None = None
     scene_data: SceneData | None = None
     character_data: CharacterData | None = None
@@ -205,6 +208,7 @@ class PipelineState:
             PipelineStep.IMAGE_PROMPT_OPTIMIZE,
             PipelineStep.IMAGE_GENERATION,
             PipelineStep.GROUNDING,
+            PipelineStep.ENTITY_GROUNDING,
         }
         return any(not r.success and r.step not in non_critical_steps for r in self.step_results)
 
@@ -312,6 +316,7 @@ class GenerationPipeline:
         # Agents (lazy initialization)
         self._judge_agent: JudgeAgent | None = None
         self._grounding_agent: GroundingAgent | None = None
+        self._entity_grounding_agent: EntityGroundingAgent | None = None
         self._timeline_agent: TimelineAgent | None = None
         self._scene_agent: SceneAgent | None = None
         self._characters_agent: CharactersAgent | None = None
@@ -346,6 +351,7 @@ class GenerationPipeline:
         router = self.router
         self._judge_agent = JudgeAgent(router=router)
         self._grounding_agent = GroundingAgent(router=router)
+        self._entity_grounding_agent = EntityGroundingAgent(router=router)
         self._timeline_agent = TimelineAgent(router=router)
         self._scene_agent = SceneAgent(router=router)
         self._characters_agent = CharactersAgent(router=router)
@@ -514,6 +520,10 @@ class GenerationPipeline:
         # Step 2: Grounding (optional - only for historical events/figures)
         state = await self._step_grounding(state)
         # Grounding failures are non-fatal - we continue with or without grounded context
+
+        # Step 2.5: Entity Grounding (optional - enriches entities via web search)
+        state = await self._step_entity_grounding(state)
+        # Entity grounding failures are non-fatal
 
         # Step 3: Timeline
         state = await self._step_timeline(state)
@@ -1085,6 +1095,103 @@ class GenerationPipeline:
                 model_used=result.model_used,
             )
         )
+
+        return state
+
+    async def _step_entity_grounding(self, state: PipelineState) -> PipelineState:
+        """Execute entity grounding step to enrich entities via web search.
+
+        Uses OpenRouter web search plugins (Perplexity Sonar) to research
+        entities detected by JudgeAgent and GroundingAgent. Gated by the
+        ENTITY_GROUNDING_ENABLED feature flag (default: off).
+
+        Entity grounding is non-fatal — failures are logged and the pipeline
+        continues without grounded entity profiles.
+        """
+        import time
+
+        step = PipelineStep.ENTITY_GROUNDING
+        start_time = time.perf_counter()
+
+        # Feature flag gate
+        if not settings.ENTITY_GROUNDING_ENABLED:
+            state.step_results.append(
+                StepResult(
+                    step=step,
+                    success=True,
+                    data={"skipped": True, "reason": "ENTITY_GROUNDING_ENABLED=false"},
+                    latency_ms=0,
+                )
+            )
+            return state
+
+        if not state.judge_result:
+            state.step_results.append(
+                StepResult(
+                    step=step,
+                    success=True,
+                    data={"skipped": True, "reason": "No judge result"},
+                    latency_ms=0,
+                )
+            )
+            return state
+
+        # Collect entity names from judge detected_figures + grounding verified_participants
+        entity_names: list[str] = []
+        if state.judge_result.detected_figures:
+            entity_names.extend(state.judge_result.detected_figures)
+        if (
+            state.grounded_context
+            and hasattr(state.grounded_context, "verified_participants")
+            and state.grounded_context.verified_participants
+        ):
+            entity_names.extend(state.grounded_context.verified_participants)
+
+        if not entity_names:
+            state.step_results.append(
+                StepResult(
+                    step=step,
+                    success=True,
+                    data={"skipped": True, "reason": "No entities to ground"},
+                    latency_ms=0,
+                )
+            )
+            return state
+
+        try:
+            profiles = await self._entity_grounding_agent.run(entity_names)
+            state.entity_grounding_profiles = {
+                name: profile.model_dump() for name, profile in profiles.items()
+            }
+            latency_ms = int((time.perf_counter() - start_time) * 1000)
+
+            logger.info(
+                f"Entity grounding: {len(profiles)}/{len(entity_names)} entities grounded "
+                f"in {latency_ms}ms"
+            )
+
+            state.step_results.append(
+                StepResult(
+                    step=step,
+                    success=True,
+                    data={
+                        "grounded_count": len(profiles),
+                        "total_entities": len(entity_names),
+                    },
+                    latency_ms=latency_ms,
+                )
+            )
+        except Exception as exc:
+            latency_ms = int((time.perf_counter() - start_time) * 1000)
+            logger.warning(f"Entity grounding failed: {exc}", exc_info=True)
+            state.step_results.append(
+                StepResult(
+                    step=step,
+                    success=False,
+                    error=str(exc),
+                    latency_ms=latency_ms,
+                )
+            )
 
         return state
 
