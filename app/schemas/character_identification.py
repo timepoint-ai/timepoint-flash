@@ -74,6 +74,17 @@ class CharacterStub(BaseModel):
         description="Social register: elite/educated/common/servant/child",
     )
 
+    # Grounded entity data (populated when ENTITY_GROUNDING_ENABLED=true
+    # or when entity_ids are provided via entity library)
+    grounded_appearance: str | None = Field(
+        default=None,
+        description="Physical appearance from grounding data (for CharacterBioAgent)",
+    )
+    grounded_biography: str | None = Field(
+        default=None,
+        description="Factual biography from grounding data (for CharacterBioAgent)",
+    )
+
 
 class CharacterIdentification(BaseModel):
     """Result of character identification phase.

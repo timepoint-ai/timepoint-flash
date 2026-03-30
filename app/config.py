@@ -507,6 +507,11 @@ class Settings(BaseSettings):
         default=False,
         description="Feature flag for entity resolution against Clockchain figures",
     )
+    ENTITY_GROUNDING_ENABLED: bool = Field(
+        default=False,
+        description="Feature flag for rich entity grounding. When true, resolve_figures_with_data() "
+        "returns full grounding data from Clockchain and pre-populates CharacterStub fields.",
+    )
     CLOCKCHAIN_URL: str = Field(
         default="",
         description="Base URL for the Clockchain service (e.g. https://clockchain.timepointai.com).",
